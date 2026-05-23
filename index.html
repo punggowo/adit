@@ -796,7 +796,7 @@ function save(){localStorage.setItem(LS.L,JSON.stringify(S.locs));localStorage.s
 function load(){
     const l=localStorage.getItem(LS.L),h=localStorage.getItem(LS.H),n=localStorage.getItem(LS.N);
     S.locs=l?JSON.parse(l):JSON.parse(JSON.stringify(LOCS_DEF));
-    /*========= S.hist=h?JSON.parse(h):JSON.parse(JSON.stringify(DEMO_HIST)); =============*/
+    S.hist=h?JSON.parse(h):JSON.parse(JSON.stringify(DEMO_HIST)); 
     S.nextId=n?+n:600;
     if(!h)save();
 }

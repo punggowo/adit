@@ -1,1595 +1,1525 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🛵 Shop33 Radar - Emiten ADIT</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:'Segoe UI',sans-serif;background:#0a0a18;color:#ddd;overflow:hidden;}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>shop33 Driver Tracker - Pekalongan & Batang</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f0f2f5;--bg2:#fff;--bg3:#f8f9fa;
+  --text:#1a1a2e;--text2:#555;--text3:#999;
+  --border:#e0e0e0;--sh:0 2px 12px rgba(0,0,0,.09);--sh2:0 6px 28px rgba(0,0,0,.13);
+  --shop33:#EE4D2D;--shop332:#FF7337;--shop33-bg:#fff3f0;
+  --green:#27ae60;--blue:#2980b9;--purple:#8e44ad;--red:#e74c3c;--yellow:#f39c12;
+  --sw:340px;--hh:54px;--tr:.22s ease;
+}
+[data-theme="dark"]{
+  --bg:#0d0d1a;--bg2:#181828;--bg3:#12121f;
+  --text:#e8e8f5;--text2:#a0a0c0;--text3:#5a5a8a;
+  --border:#252545;--sh:0 2px 12px rgba(0,0,0,.5);--sh2:0 6px 28px rgba(0,0,0,.6);
+  --shop33-bg:#1e0d0a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--shop33);border-radius:4px;}
 
-        /* HEADER */
-        .hdr{height:56px;background:linear-gradient(135deg,#12122a,#1a1a35);border-bottom:2px solid #00d4ff33;display:flex;align-items:center;justify-content:space-between;padding:0 16px;position:relative;z-index:1000;box-shadow:0 2px 20px rgba(0,212,255,0.15);}
-        .hdr-left{display:flex;align-items:center;gap:12px;}
-        .hdr-logo{font-size:1.6em;}
-        .hdr-title{font-size:1.1em;font-weight:700;color:#00d4ff;line-height:1.2;}
-        .hdr-sub{font-size:0.65em;color:#556;}
-        .hdr-right{display:flex;align-items:center;gap:10px;}
-        .clock{font-family:monospace;font-size:1.05em;color:#00d4ff;font-weight:700;letter-spacing:1px;}
-        .live-dot{display:flex;align-items:center;gap:5px;background:#00ff8822;border:1px solid #00ff8844;padding:4px 10px;border-radius:20px;font-size:0.7em;color:#00ff88;font-weight:700;}
-        .live-dot::before{content:'';width:6px;height:6px;background:#00ff88;border-radius:50%;animation:blink 1.2s infinite;}
-        @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+/* MAP ALWAYS VISIBLE */
+#mapRoot{position:fixed;inset:0;z-index:0;}
+#map{width:100%;height:100%;}
 
-        /* LAYOUT */
-        .layout{display:grid;grid-template-columns:305px 1fr;height:calc(100vh - 56px);}
+/* LOGIN OVERLAY */
+#loginOverlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  transition:opacity .4s ease;
+}
+#loginOverlay.hiding{opacity:0;pointer-events:none;}
+.lbox{
+  background:var(--bg2);border-radius:20px;padding:30px 24px;
+  width:100%;max-width:370px;box-shadow:0 24px 64px rgba(0,0,0,.45);
+  animation:popIn .4s cubic-bezier(.34,1.56,.64,1);border:1px solid var(--border);
+}
+@keyframes popIn{from{transform:scale(.85) translateY(20px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.llogo{width:60px;height:60px;background:linear-gradient(135deg,#EE4D2D,#FF7337);
+  border-radius:14px;margin:0 auto 11px;display:flex;align-items:center;
+  justify-content:center;font-size:30px;box-shadow:0 8px 20px rgba(238,77,45,.4);}
+.ltitle{font-size:19px;font-weight:800;color:var(--shop33);text-align:center;margin-bottom:3px;}
+.lsub{font-size:11px;color:var(--text3);text-align:center;margin-bottom:18px;}
+.linp{position:relative;margin-bottom:10px;}
+.linp i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px;}
+.linp input,.linp select{width:100%;padding:10px 10px 10px 33px;border:2px solid var(--border);
+  border-radius:9px;font-size:13px;background:var(--bg3);color:var(--text);outline:none;transition:var(--tr);}
+.linp input:focus,.linp select:focus{border-color:var(--shop33);box-shadow:0 0 0 3px rgba(238,77,45,.12);}
+.linp select option{background:var(--bg2);color:var(--text);}
+.lbtn{width:100%;padding:11px;background:linear-gradient(135deg,#EE4D2D,#FF7337);
+  color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;
+  cursor:pointer;transition:var(--tr);box-shadow:0 4px 14px rgba(238,77,45,.4);}
+.lbtn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(238,77,45,.5);}
+.lerr{color:var(--red);font-size:11px;text-align:center;margin-top:8px;
+  padding:8px;background:rgba(231,76,60,.1);border-radius:8px;display:none;}
+.ldemo{margin-top:12px;padding:9px;background:var(--bg3);border-radius:8px;
+  font-size:10px;color:var(--text3);text-align:center;border:1px dashed var(--border);}
+.ldemo strong{color:var(--shop33);}
 
-        /* SIDEBAR */
-        .sb{background:#0e0e22;border-right:1px solid #1e1e35;overflow-y:auto;display:flex;flex-direction:column;}
-        .sb::-webkit-scrollbar{width:3px;}
-        .sb::-webkit-scrollbar-thumb{background:#00d4ff22;border-radius:2px;}
-        .sb::-webkit-scrollbar-thumb:hover{background:#00d4ff55;}
+/* HEADER */
+#hdr{position:fixed;top:0;left:0;right:0;height:var(--hh);z-index:200;
+  background:linear-gradient(135deg,#EE4D2D,#FF7337);
+  display:flex;align-items:center;padding:0 11px;gap:7px;
+  box-shadow:0 2px 12px rgba(238,77,45,.35);
+  transform:translateY(-100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);}
+#hdr.visible{transform:translateY(0);}
+.hbtn{background:rgba(255,255,255,.18);border:none;color:#fff;
+  width:33px;height:33px;border-radius:8px;font-size:14px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--tr);}
+.hbtn:hover{background:rgba(255,255,255,.32);}
+.hlogo{font-size:14px;font-weight:800;color:#fff;flex:1;}
+.hlogo span{background:#fff;color:var(--shop33);border-radius:5px;padding:1px 6px;margin-right:4px;}
+.huser{color:rgba(255,255,255,.9);font-size:10px;text-align:right;line-height:1.3;}
+.huser strong{display:block;font-size:12px;color:#fff;}
+.hlogout{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);
+  color:#fff;padding:5px 9px;border-radius:8px;cursor:pointer;
+  font-size:11px;font-weight:700;transition:var(--tr);display:flex;align-items:center;gap:4px;white-space:nowrap;}
+.hlogout:hover{background:rgba(255,255,255,.32);}
+.bmenu{display:none!important;}
 
-        /* PANEL */
-        .pnl{border-bottom:1px solid #1a1a30;padding:12px 14px;}
-        .pnl-hd{font-size:0.78em;color:#00d4ff;font-weight:700;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
-        .pnl-hd .ph-r{color:#445;font-weight:400;font-size:0.9em;}
+/* SIDEBAR */
+#sidebar{
+  position:fixed;left:0;top:var(--hh);width:var(--sw);
+  height:calc(100vh - var(--hh));background:var(--bg2);
+  border-right:1px solid var(--border);overflow-y:auto;z-index:190;
+  display:flex;flex-direction:column;
+  transform:translateX(-100%);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1),background var(--tr);
+  box-shadow:var(--sh2);
+}
+#sidebar.visible{transform:translateX(0);}
 
-        /* TABS */
-        .tabs{display:flex;gap:2px;background:#0a0a18;border-radius:8px;padding:3px;}
-        .tab{flex:1;padding:6px 4px;text-align:center;font-size:0.67em;font-weight:700;border-radius:6px;cursor:pointer;border:none;background:transparent;color:#445;transition:all 0.2s;}
-        .tab.active{background:#00d4ff22;color:#00d4ff;border:1px solid #00d4ff33;}
-        .tab:hover:not(.active){background:#1a1a30;color:#778;}
-        .tc{display:none;}
-        .tc.show{display:block;}
+/* =========================================
+   FILTER PANEL - DROPDOWN STYLE
+   ========================================= */
+.fpanel{
+  flex-shrink:0;background:var(--bg3);
+  border-bottom:2px solid var(--border);
+  padding:10px 12px;
+  transition:background var(--tr);
+}
+.fp-head{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;
+}
+.fp-title{
+  font-size:10px;font-weight:800;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.6px;
+  display:flex;align-items:center;gap:5px;
+}
+.fp-title i{color:var(--shop33);}
+.fp-reset{
+  background:none;border:1px solid var(--border);color:var(--text3);
+  padding:3px 9px;border-radius:20px;font-size:9px;font-weight:700;
+  cursor:pointer;transition:var(--tr);
+}
+.fp-reset:hover{border-color:var(--shop33);color:var(--shop33);}
+.fp-reset.act{background:var(--shop33);border-color:var(--shop33);color:#fff;}
 
-        /* BUTTONS */
-        .btn{border:none;cursor:pointer;border-radius:6px;font-weight:700;transition:all 0.18s;font-family:inherit;}
-        .btn:hover{filter:brightness(1.15);transform:translateY(-1px);}
-        .btn:active{transform:translateY(0);}
-        .bxs{padding:3px 8px;font-size:0.65em;}
-        .bsm{padding:6px 10px;font-size:0.72em;}
-        .bmd{padding:9px 14px;font-size:0.8em;}
-        .blk{width:100%;display:block;text-align:center;}
-        .bpri{background:#00d4ff;color:#000;}
-        .bsuc{background:#00ff88;color:#000;}
-        .bwrn{background:#ff6b35;color:#fff;}
-        .bdng{background:#ff3366;color:#fff;}
-        .bsec{background:#1e1e35;color:#778;border:1px solid #2a2a45;}
-        .bpur{background:#7c4dff;color:#fff;}
-        .brow{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;}
-        .brow .btn{flex:1;min-width:55px;}
+/* Dropdown rows */
+.fdr{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;}
+.fd-wrap{display:flex;flex-direction:column;gap:3px;}
+.fd-label{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:3px;}
+.fd-label i{color:var(--shop33);font-size:9px;}
+.fd-select{
+  width:100%;padding:8px 28px 8px 9px;
+  border:2px solid var(--border);border-radius:9px;
+  font-size:11px;font-weight:700;background:var(--bg2);color:var(--text);
+  outline:none;cursor:pointer;transition:var(--tr);
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;
+}
+.fd-select:focus{border-color:var(--shop33);box-shadow:0 0 0 3px rgba(238,77,45,.12);}
+.fd-select option{background:var(--bg2);color:var(--text);font-weight:600;}
+.fd-select.has-val{border-color:var(--shop33);background-color:var(--shop33-bg);color:var(--shop33);}
 
-        /* HOUR GRID */
-        .hgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin:6px 0;}
-        .hbtn{background:#141428;border:1px solid #2a2a45;color:#445;padding:5px 2px;border-radius:5px;font-size:0.67em;cursor:pointer;text-align:center;transition:all 0.15s;position:relative;}
-        .hbtn:hover{border-color:#00d4ff55;color:#00d4ff;}
-        .hbtn.on{background:#00d4ff;color:#000;border-color:#00d4ff;font-weight:700;}
-        .hbtn.has::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:3px;height:3px;background:#00ff88;border-radius:50%;}
-        .hbtn.on.has::after{background:#00000066;}
+/* Density dropdown full width */
+.fd-density{
+  width:100%;padding:8px 28px 8px 9px;
+  border:2px solid var(--border);border-radius:9px;
+  font-size:11px;font-weight:700;background:var(--bg2);color:var(--text);
+  outline:none;cursor:pointer;transition:var(--tr);
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;
+  margin-top:6px;
+}
+.fd-density:focus{border-color:var(--shop33);box-shadow:0 0 0 3px rgba(238,77,45,.12);}
+.fd-density.has-val{border-color:var(--shop33);}
+.fd-density option{background:var(--bg2);color:var(--text);font-weight:600;}
 
-        /* SLIDER */
-        .sldr-wrap{margin:8px 0;}
-        .sldr-lbl{display:flex;justify-content:space-between;font-size:0.62em;color:#445;margin-bottom:3px;}
-        input[type=range]{width:100%;accent-color:#00d4ff;height:4px;cursor:pointer;}
-        .sldr-val{text-align:center;font-size:1.5em;color:#00d4ff;font-weight:700;font-family:monospace;margin:4px 0;}
+/* Selected result card */
+.sel-card{
+  display:none;border-radius:10px;padding:9px 11px;margin-top:7px;color:#fff;
+}
+.sel-card.show{display:block;}
+.sc-top{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.sc-icon{font-size:22px;line-height:1;}
+.sc-info{flex:1;}
+.sc-main{font-size:13px;font-weight:900;line-height:1;}
+.sc-sub{font-size:10px;opacity:.85;margin-top:2px;font-weight:600;}
+.sc-lv{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:3px 9px;border-radius:20px;font-size:10px;font-weight:800;
+  background:rgba(255,255,255,.25);white-space:nowrap;
+}
+.sc-close{
+  background:rgba(255,255,255,.25);border:none;color:#fff;
+  width:22px;height:22px;border-radius:6px;cursor:pointer;
+  font-size:13px;display:flex;align-items:center;justify-content:center;
+}
+.sc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:7px;}
+.sc-stat{background:rgba(255,255,255,.18);border-radius:7px;padding:5px 4px;text-align:center;}
+.sc-stat-n{font-size:15px;font-weight:900;line-height:1;}
+.sc-stat-l{font-size:8px;opacity:.85;margin-top:1px;font-weight:700;}
+.sc-tip{padding:6px 8px;background:rgba(0,0,0,.15);border-radius:7px;font-size:9px;line-height:1.5;font-weight:600;}
+.sc-tip i{margin-right:3px;}
 
-        /* STATS */
-        .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
-        .scard{background:#141428;padding:8px 10px;border-radius:7px;text-align:center;border:1px solid #1e1e38;cursor:pointer;transition:border-color 0.2s;}
-        .scard:hover{border-color:#00d4ff33;}
-        .sv{font-size:1.2em;font-weight:700;color:#00d4ff;line-height:1.3;}
-        .sl{font-size:0.58em;color:#556;margin-top:2px;}
+/* Active filter badge */
+.afbar{
+  display:none;align-items:center;gap:4px;padding:5px 12px;
+  background:rgba(238,77,45,.1);border-bottom:1px solid rgba(238,77,45,.2);
+  font-size:9px;color:var(--shop33);font-weight:700;flex-wrap:wrap;flex-shrink:0;
+}
+.afbar.show{display:flex;}
+.aftag{background:var(--shop33);color:#fff;border-radius:5px;padding:2px 6px;font-size:9px;font-weight:800;}
 
-        /* TOP LIST */
-        .tlist{list-style:none;}
-        .titem{display:flex;align-items:center;gap:6px;padding:6px 8px;margin-bottom:3px;background:#141428;border-radius:6px;border-left:3px solid #1e1e38;cursor:pointer;transition:all 0.15s;font-size:0.72em;}
-        .titem:hover{background:#1a1a30;border-left-color:#00d4ff;}
-        .titem:nth-child(1){border-left-color:#ffd600;}
-        .titem:nth-child(2){border-left-color:#aaa;}
-        .titem:nth-child(3){border-left-color:#cd7f32;}
-        .trnk{font-weight:700;color:#ff6b35;min-width:22px;}
-        .tname{flex:1;color:#ccc;}
-        .tsub{color:#445;font-size:0.85em;margin-top:1px;}
-        .tbdg{background:#00d4ff;color:#000;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:700;flex-shrink:0;}
+/* Rekomendasi strip */
+.reko-strip{
+  display:none;flex-shrink:0;padding:8px 12px;
+  background:linear-gradient(135deg,rgba(39,174,96,.1),rgba(39,174,96,.05));
+  border-bottom:2px solid rgba(39,174,96,.2);
+}
+.reko-strip.show{display:block;}
+.reko-title{font-size:9px;font-weight:800;color:var(--green);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:5px;display:flex;align-items:center;gap:4px;}
+.reko-list{display:flex;gap:5px;flex-wrap:wrap;}
+.reko-chip{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:4px 9px;border-radius:20px;font-size:10px;font-weight:800;
+  cursor:pointer;transition:var(--tr);color:#fff;box-shadow:var(--sh);
+}
+.reko-chip:hover{transform:translateY(-1px);}
 
-        /* FORM */
-        .fg{margin-bottom:7px;}
-        .fg label{font-size:0.68em;color:#556;display:block;margin-bottom:3px;}
-        .fg input,.fg select,.fg textarea{width:100%;background:#141428;border:1px solid #2a2a45;color:#ccc;padding:6px 9px;border-radius:6px;font-size:0.77em;font-family:inherit;transition:border-color 0.2s;}
-        .fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:#00d4ff;background:#16162e;}
-        .fg select option{background:#141428;}
-        .g2{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-        .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+/* TABS */
+.tabnav{
+  display:flex;background:var(--bg3);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:10;flex-shrink:0;transition:background var(--tr);
+}
+.tbtn{
+  flex:1;padding:9px 2px;border:none;background:none;
+  font-size:8px;font-weight:800;color:var(--text3);cursor:pointer;
+  transition:var(--tr);border-bottom:3px solid transparent;
+  text-transform:uppercase;letter-spacing:.3px;
+}
+.tbtn i{display:block;font-size:13px;margin-bottom:2px;}
+.tbtn.on{color:var(--shop33);border-bottom-color:var(--shop33);background:var(--bg2);}
+.tcont{display:none;padding:12px;}
+.tcont.on{display:block;}
 
-        /* ===== SEARCH ALAMAT ===== */
-        .search-wrap{position:relative;margin-bottom:8px;}
-        .search-input{
-            width:100%;background:#141428;border:1px solid #2a2a45;
-            color:#ccc;padding:8px 36px 8px 10px;border-radius:8px;
-            font-size:0.78em;font-family:inherit;transition:all 0.2s;
-        }
-        .search-input:focus{outline:none;border-color:#00d4ff;background:#16162e;box-shadow:0 0 0 2px #00d4ff22;}
-        .search-input::placeholder{color:#445;}
-        .search-icon{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#445;font-size:0.9em;pointer-events:none;}
-        .search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#ff6b35;font-size:0.9em;cursor:pointer;display:none;background:none;border:none;}
-        .search-loading{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:none;}
-        .spin{width:14px;height:14px;border:2px solid #2a2a45;border-top-color:#00d4ff;border-radius:50%;animation:spin 0.8s linear infinite;}
-        @keyframes spin{to{transform:rotate(360deg);}}
-        .search-results{
-            position:absolute;top:calc(100% + 4px);left:0;right:0;
-            background:#141428;border:1px solid #2a2a45;border-radius:8px;
-            max-height:220px;overflow-y:auto;z-index:2000;
-            box-shadow:0 8px 24px rgba(0,0,0,0.5);display:none;
-        }
-        .search-results.show{display:block;}
-        .search-results::-webkit-scrollbar{width:3px;}
-        .search-results::-webkit-scrollbar-thumb{background:#2a2a45;border-radius:2px;}
-        .sr-item{
-            padding:9px 12px;cursor:pointer;border-bottom:1px solid #1a1a30;
-            transition:background 0.15s;display:flex;align-items:flex-start;gap:8px;
-        }
-        .sr-item:last-child{border-bottom:none;}
-        .sr-item:hover{background:#1a1a35;}
-        .sr-item.active{background:#00d4ff11;border-left:2px solid #00d4ff;}
-        .sr-ico{font-size:1em;flex-shrink:0;margin-top:1px;}
-        .sr-name{font-size:0.78em;color:#ccc;font-weight:600;line-height:1.3;}
-        .sr-addr{font-size:0.65em;color:#556;margin-top:2px;line-height:1.4;}
-        .sr-dist{font-size:0.62em;color:#00d4ff;margin-top:2px;}
-        .sr-empty{padding:16px;text-align:center;color:#445;font-size:0.75em;}
-        .sr-tip{padding:10px 12px;font-size:0.65em;color:#445;border-top:1px solid #1a1a30;display:flex;align-items:center;gap:6px;}
+/* =========================================
+   MAP - HEAT SCALE BAR (replaces legend)
+   ========================================= */
+.map-heat-bar{
+  position:fixed;bottom:30px;left:50%;transform:translateX(-50%);
+  z-index:100;background:var(--bg2);border:1px solid var(--border);
+  border-radius:30px;padding:7px 16px;box-shadow:var(--sh2);
+  display:flex;align-items:center;gap:10px;white-space:nowrap;
+  transition:left var(--tr),transform var(--tr);
+}
+.map-heat-bar.with-sb{
+  left:calc(var(--sw)/2 + var(--sw)/2);
+}
+.heat-label{font-size:9px;font-weight:800;color:var(--text2);}
+.heat-swatch{
+  display:flex;align-items:center;gap:4px;
+}
+.hs-item{display:flex;align-items:center;gap:3px;font-size:9px;font-weight:700;color:var(--text2);}
+.hs-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.hs-sep{color:var(--text3);font-size:9px;}
 
-        /* COORD DISPLAY */
-        .coord-display{
-            display:none;background:#141428;border:1px solid #00d4ff22;
-            border-radius:7px;padding:8px 10px;margin-bottom:6px;
-        }
-        .coord-display.show{display:block;}
-        .cd-title{font-size:0.65em;color:#00d4ff;margin-bottom:5px;font-weight:700;}
-        .cd-row{display:flex;gap:8px;}
-        .cd-field{flex:1;}
-        .cd-field label{font-size:0.6em;color:#445;display:block;margin-bottom:2px;}
-        .cd-field input{width:100%;background:#0e0e22;border:1px solid #2a2a45;color:#00ff88;padding:4px 7px;border-radius:5px;font-size:0.72em;font-family:monospace;}
-        .cd-field input:focus{outline:none;border-color:#00d4ff;}
-        .cd-addr{font-size:0.63em;color:#778;margin-top:5px;line-height:1.4;padding-top:5px;border-top:1px solid #1a1a30;}
+/* Map controls (no legend) */
+.map-ctrl{
+  position:fixed;right:10px;top:66px;z-index:100;
+  display:flex;flex-direction:column;gap:6px;
+  transition:top var(--tr);
+}
+.map-ctrl.with-hdr{top:calc(var(--hh) + 10px);}
+.mbtn{
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:7px 11px;box-shadow:var(--sh2);cursor:pointer;
+  font-size:10px;font-weight:700;color:var(--text);
+  display:flex;align-items:center;gap:5px;transition:var(--tr);white-space:nowrap;
+}
+.mbtn:hover{background:var(--shop33-bg);color:var(--shop33);}
 
-        /* MAP PIN MARKER saat search */
-        .search-marker-pulse{
-            width:20px;height:20px;border-radius:50%;
-            background:#ff6b35;border:3px solid #fff;
-            box-shadow:0 0 0 0 rgba(255,107,53,0.5);
-            animation:searchPulse 1.5s infinite;
-        }
-        @keyframes searchPulse{
-            0%{box-shadow:0 0 0 0 rgba(255,107,53,0.5);}
-            70%{box-shadow:0 0 0 12px rgba(255,107,53,0);}
-            100%{box-shadow:0 0 0 0 rgba(255,107,53,0);}
-        }
+/* Filter badge on map */
+.mfbadge{
+  position:fixed;z-index:100;background:var(--bg2);border:1px solid var(--border);
+  border-radius:10px;padding:6px 11px;box-shadow:var(--sh2);font-size:10px;font-weight:700;
+  color:var(--text);display:none;align-items:center;gap:6px;max-width:210px;
+  left:10px;top:66px;transition:top var(--tr),left var(--tr);
+}
+.mfbadge.show{display:flex;}
+.mfbadge.with-hdr{top:calc(var(--hh) + 10px);}
+.mfbadge.with-sb{left:calc(var(--sw) + 10px);}
 
-        /* HISTORY LIST */
-        .hscroll{max-height:185px;overflow-y:auto;}
-        .hscroll::-webkit-scrollbar{width:3px;}
-        .hscroll::-webkit-scrollbar-thumb{background:#1e1e38;border-radius:2px;}
-        .hrow{display:flex;align-items:center;gap:5px;padding:5px 7px;margin-bottom:3px;background:#141428;border-radius:5px;border-left:3px solid #1e1e38;cursor:pointer;transition:all 0.15s;}
-        .hrow:hover{background:#1a1a30;}
-        .hrow.ride{border-left-color:#1e88e5;}
-        .hrow.food{border-left-color:#ef6c00;}
-        .hrow.send{border-left-color:#2e7d32;}
-        .hrow.shop{border-left-color:#6a1b9a;}
-        .hri{flex:1;min-width:0;}
-        .hrloc{color:#00d4ff;font-size:0.7em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .hrmeta{color:#445;font-size:0.62em;margin-top:1px;}
-        .hrinc{color:#00ff88;font-weight:700;font-size:0.68em;flex-shrink:0;}
-        .hrdel{background:transparent;border:1px solid #ff336644;color:#ff3366;padding:2px 6px;border-radius:4px;cursor:pointer;font-size:0.62em;flex-shrink:0;transition:all 0.15s;}
-        .hrdel:hover{background:#ff3366;color:#fff;}
+/* CARDS */
+.card{background:var(--bg2);border-radius:11px;border:1px solid var(--border);
+  margin-bottom:9px;overflow:hidden;box-shadow:var(--sh);
+  transition:background var(--tr),border-color var(--tr);}
+.chead{background:linear-gradient(135deg,var(--shop33),var(--shop332));color:#fff;
+  padding:9px 11px;font-weight:700;font-size:11px;display:flex;align-items:center;gap:6px;}
+.cbody{padding:11px;}
 
-        /* MAP */
-        #map{width:100%;height:100%;}
-        .mapwrap{position:relative;overflow:hidden;}
+/* Stats */
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:11px;}
+.sbox{border-radius:11px;padding:11px 9px;color:#fff;position:relative;overflow:hidden;cursor:pointer;transition:transform .2s;}
+.sbox:hover{transform:translateY(-2px);}
+.sbox::after{content:'';position:absolute;right:-7px;top:-7px;width:44px;height:44px;background:rgba(255,255,255,.12);border-radius:50%;}
+.sbox.o{background:linear-gradient(135deg,#EE4D2D,#FF7337);box-shadow:0 4px 12px rgba(238,77,45,.3);}
+.sbox.g{background:linear-gradient(135deg,#27ae60,#2ecc71);box-shadow:0 4px 12px rgba(39,174,96,.3);}
+.sbox.b{background:linear-gradient(135deg,#2980b9,#3498db);box-shadow:0 4px 12px rgba(41,128,185,.3);}
+.sbox.p{background:linear-gradient(135deg,#8e44ad,#9b59b6);box-shadow:0 4px 12px rgba(142,68,173,.3);}
+.snum{font-size:22px;font-weight:900;line-height:1;}
+.slbl{font-size:8px;opacity:.9;margin-top:3px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.sico{position:absolute;right:8px;bottom:6px;font-size:18px;opacity:.25;}
 
-        /* MAP OVERLAYS */
-        .mib{position:absolute;top:10px;left:10px;z-index:900;background:rgba(8,8,20,0.9);border:1px solid #00d4ff22;border-radius:9px;padding:9px 13px;font-size:0.72em;backdrop-filter:blur(6px);pointer-events:none;}
-        .mib-t{color:#00d4ff;font-weight:700;margin-bottom:3px;}
-        .mib-v{color:#ccc;}
-        .mib-s{color:#445;font-size:0.88em;margin-top:2px;}
+/* Form */
+.fg{margin-bottom:9px;}
+.fl{font-size:9px;font-weight:800;color:var(--text2);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:.4px;}
+.fc{width:100%;padding:9px 10px;border:2px solid var(--border);border-radius:9px;
+  font-size:12px;background:var(--bg3);color:var(--text);outline:none;transition:var(--tr);}
+.fc:focus{border-color:var(--shop33);box-shadow:0 0 0 3px rgba(238,77,45,.1);}
+.fc option{background:var(--bg2);color:var(--text);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 
-        .legend{position:absolute;bottom:28px;right:8px;z-index:900;background:rgba(8,8,20,0.92);border:1px solid #1e1e38;border-radius:10px;padding:11px 13px;font-size:0.7em;backdrop-filter:blur(6px);}
-        .leg-t{color:#00d4ff;font-weight:700;margin-bottom:7px;}
-        .leg-r{display:flex;align-items:center;gap:7px;margin-bottom:4px;color:#889;}
-        .leg-d{width:12px;height:12px;border-radius:50%;flex-shrink:0;opacity:0.85;}
-        .leg-h{color:#334;font-size:0.88em;margin-top:7px;border-top:1px solid #1a1a30;padding-top:6px;line-height:1.5;}
+/* Buttons */
+.btn{padding:7px 11px;border:none;border-radius:9px;font-size:10px;font-weight:800;
+  cursor:pointer;transition:var(--tr);display:inline-flex;align-items:center;gap:4px;
+  text-transform:uppercase;letter-spacing:.3px;}
+.btn:hover{transform:translateY(-1px);}
+.btn:active{transform:none;}
+.bp{background:linear-gradient(135deg,#EE4D2D,#FF7337);color:#fff;box-shadow:0 3px 10px rgba(238,77,45,.3);}
+.bs{background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;box-shadow:0 3px 10px rgba(39,174,96,.3);}
+.bw{background:linear-gradient(135deg,#f39c12,#f1c40f);color:#fff;}
+.bd{background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;box-shadow:0 3px 10px rgba(231,76,60,.3);}
+.bi{background:linear-gradient(135deg,#2980b9,#3498db);color:#fff;}
+.bx{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.bsm{padding:5px 8px;font-size:9px;border-radius:7px;}
+.bblk{width:100%;justify-content:center;margin-top:5px;}
 
-        .ctip{position:absolute;bottom:65px;left:50%;transform:translateX(-50%);background:rgba(0,212,255,0.12);border:1px solid #00d4ff33;color:#00d4ff;padding:5px 13px;border-radius:20px;font-size:0.7em;z-index:900;pointer-events:none;opacity:0;transition:opacity 0.3s;font-family:monospace;white-space:nowrap;}
-        .ctip.show{opacity:1;}
+/* History items */
+.hitem{border:1px solid var(--border);border-radius:10px;padding:9px;
+  margin-bottom:6px;transition:var(--tr);background:var(--bg2);}
+.hitem:hover{border-color:var(--shop33);background:var(--shop33-bg);}
+.hbadge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;
+  border-radius:20px;font-size:8px;font-weight:800;color:#fff;margin-bottom:3px;}
+.hloc{font-size:12px;font-weight:700;color:var(--text);}
+.hnote{font-size:10px;color:var(--text2);margin-top:2px;}
+.htime{font-size:10px;color:var(--text3);margin-top:3px;}
+.hacts{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
+.hdrv{font-size:9px;color:var(--text3);margin-top:1px;}
 
-        /* TOAST */
-        .toast{position:fixed;top:65px;right:14px;padding:10px 16px;border-radius:8px;font-weight:700;z-index:9999;transform:translateX(130%);transition:transform 0.3s cubic-bezier(.34,1.56,.64,1);font-size:0.8em;max-width:280px;box-shadow:0 4px 20px rgba(0,0,0,0.4);}
-        .toast.show{transform:translateX(0);}
-        .toast.success{background:#00ff88;color:#000;}
-        .toast.error{background:#ff3366;color:#fff;}
-        .toast.info{background:#1a1a35;color:#ccc;border:1px solid #2a2a45;}
-        .toast.warning{background:#ff6b35;color:#fff;}
+/* User items */
+.uitem{display:flex;align-items:center;gap:8px;padding:9px;
+  border:1px solid var(--border);border-radius:10px;margin-bottom:6px;
+  background:var(--bg2);transition:var(--tr);}
+.uitem:hover{border-color:var(--shop33);background:var(--shop33-bg);}
+.uav{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#EE4D2D,#FF7337);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0;}
+.uav.adm{background:linear-gradient(135deg,#8e44ad,#9b59b6);}
+.uname{font-weight:700;font-size:11px;color:var(--text);}
+.uinfo{font-size:9px;color:var(--text3);margin-top:1px;}
+.badge{font-size:7px;padding:1px 5px;border-radius:6px;font-weight:800;}
+.badm{background:rgba(142,68,173,.15);color:#8e44ad;border:1px solid rgba(142,68,173,.2);}
+.bdrv{background:rgba(238,77,45,.12);color:var(--shop33);border:1px solid rgba(238,77,45,.2);}
+.udot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.udot.on{background:#27ae60;box-shadow:0 0 0 3px rgba(39,174,96,.2);}
+.udot.off{background:var(--text3);}
 
-        /* MODAL */
-        .mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9500;justify-content:center;align-items:center;backdrop-filter:blur(4px);}
-        .mbg.show{display:flex;}
-        .mbox{background:#12122a;border-radius:14px;padding:26px;max-width:360px;width:92%;text-align:center;box-shadow:0 0 50px rgba(0,0,0,0.5);}
-        .mbox.danger{border:2px solid #ff336644;}
-        .mico{font-size:2.5em;margin-bottom:10px;}
-        .mtit{font-size:1em;font-weight:700;margin-bottom:8px;}
-        .mtxt{color:#667;font-size:0.8em;margin-bottom:20px;line-height:1.6;}
-        .mbtns{display:flex;gap:8px;justify-content:center;}
-        .mbtns button{padding:9px 24px;border-radius:8px;border:none;cursor:pointer;font-weight:700;font-size:0.88em;}
+.stitle{font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.7px;margin:9px 0 6px;display:flex;align-items:center;gap:5px;}
+.stitle::after{content:'';flex:1;height:1px;background:var(--border);}
 
-        /* BUBBLE POPUP */
-        .bpbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:8000;justify-content:center;align-items:center;padding:14px;backdrop-filter:blur(4px);}
-        .bpbg.show{display:flex;}
-        .bpbox{background:#0e0e22;border:1px solid #00d4ff33;border-radius:16px;width:100%;max-width:700px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 0 60px rgba(0,212,255,0.15);overflow:hidden;}
+.ritem{margin-bottom:7px;cursor:pointer;padding:7px 8px;border-radius:9px;
+  border:1px solid var(--border);background:var(--bg2);transition:var(--tr);}
+.ritem:hover{border-color:var(--shop33);background:var(--shop33-bg);}
+.rrow{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.rname{font-size:11px;font-weight:800;color:var(--text);}
+.rinfo{font-size:10px;font-weight:700;}
+.rbar{height:5px;background:var(--bg3);border-radius:4px;overflow:hidden;border:1px solid var(--border);}
+.rfill{height:100%;border-radius:4px;transition:.6s ease;}
 
-        .bph{background:linear-gradient(135deg,#0d2744,#111130);padding:13px 16px;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;border-bottom:1px solid #00d4ff11;}
-        .bph-l h3{color:#00d4ff;font-size:0.95em;margin-bottom:2px;}
-        .bph-area{color:#556;font-size:0.68em;margin-bottom:2px;}
-        .bph-coord{color:#334;font-size:0.62em;font-family:monospace;}
-        .bph-r{display:flex;align-items:center;gap:8px;flex-shrink:0;}
-        .bpill{padding:3px 10px;border-radius:12px;font-size:0.65em;font-weight:700;}
-        .bpclose{background:#ff336611;border:1px solid #ff336633;color:#ff3366;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1em;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0;}
-        .bpclose:hover{background:#ff3366;color:#fff;}
+/* Modal */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;
+  display:flex;align-items:center;justify-content:center;padding:14px;}
+.moverlay.hidden{display:none;}
+.mbox{background:var(--bg2);border-radius:16px;width:100%;max-width:440px;
+  max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.4);
+  animation:su .3s cubic-bezier(.34,1.56,.64,1);border:1px solid var(--border);}
+@keyframes su{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhead{background:linear-gradient(135deg,var(--shop33),var(--shop332));color:#fff;
+  padding:13px 15px;border-radius:16px 16px 0 0;display:flex;align-items:center;gap:8px;}
+.mhead h3{flex:1;font-size:13px;font-weight:800;}
+.mclose{background:rgba(255,255,255,.2);border:none;color:#fff;
+  width:26px;height:26px;border-radius:6px;font-size:15px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--tr);}
+.mclose:hover{background:rgba(255,255,255,.35);}
+.mbody{padding:15px;}
+.mfoot{padding:11px 15px;border-top:1px solid var(--border);display:flex;gap:6px;justify-content:flex-end;}
 
-        .bpst{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:10px 14px;border-bottom:1px solid #141428;flex-shrink:0;}
-        .bpsc{background:#141428;border-radius:7px;padding:7px 5px;text-align:center;border:1px solid #1e1e35;}
-        .bpsv{font-size:1.05em;font-weight:700;color:#00d4ff;}
-        .bpsl{font-size:0.55em;color:#445;margin-top:2px;}
+/* Toast */
+.toastwrap{position:fixed;bottom:60px;right:14px;z-index:700;pointer-events:none;}
+.toast{background:var(--bg2);color:var(--text);padding:9px 13px;border-radius:10px;
+  margin-top:5px;font-size:11px;font-weight:700;box-shadow:var(--sh2);
+  animation:ti .3s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:center;
+  gap:7px;max-width:270px;border:1px solid var(--border);border-left-width:4px;}
+.toast.s{border-left-color:var(--green);}
+.toast.e{border-left-color:var(--red);}
+.toast.w{border-left-color:var(--yellow);}
+.toast.i{border-left-color:var(--blue);}
+@keyframes ti{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
 
-        .bptabs{display:flex;gap:2px;padding:8px 14px 0;border-bottom:1px solid #141428;flex-shrink:0;background:#0e0e22;}
-        .bptab{padding:6px 14px;font-size:0.72em;font-weight:700;border:none;background:transparent;color:#445;cursor:pointer;border-radius:6px 6px 0 0;transition:all 0.15s;border-bottom:2px solid transparent;}
-        .bptab.active{color:#00d4ff;border-bottom-color:#00d4ff;background:#00d4ff11;}
-        .bptab:hover:not(.active){color:#667;background:#141428;}
+.empty{text-align:center;padding:22px 12px;color:var(--text3);}
+.empty i{font-size:30px;margin-bottom:6px;display:block;opacity:.3;}
+.empty p{font-size:11px;}
+.divider{border:none;border-top:1px solid var(--border);margin:10px 0;}
+.locnote{font-size:9px;color:var(--text3);font-style:italic;margin-top:3px;}
+.locnote i{color:var(--shop33);}
 
-        .bpchart{padding:10px 14px 8px;border-bottom:1px solid #141428;flex-shrink:0;}
-        .bpcht{font-size:0.7em;color:#ff6b35;font-weight:700;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;}
-        .hbars{display:flex;align-items:flex-end;gap:2px;height:70px;}
-        .hbw{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;cursor:pointer;position:relative;border-radius:2px;transition:opacity 0.15s;}
-        .hbw:hover{opacity:1!important;}
-        .hbar{width:100%;border-radius:2px 2px 0 0;transition:all 0.2s;min-height:2px;}
-        .hblbl{font-size:0.38em;color:#334;margin-top:2px;line-height:1;}
-        .htip{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:#1e1e38;color:#ccc;padding:4px 8px;border-radius:5px;font-size:0.65em;white-space:nowrap;display:none;z-index:20;border:1px solid #2a2a45;pointer-events:none;}
-        .hbw:hover .htip{display:block;}
-        .hbw.sel{opacity:1!important;outline:2px solid #00d4ff;outline-offset:1px;border-radius:2px;}
-        .hbw.dim{opacity:0.2;}
+.leaflet-marker-icon,.leaflet-marker-shadow{border:none!important;background:none!important;}
+.leaflet-popup-content-wrapper{border-radius:12px!important;box-shadow:var(--sh2)!important;}
 
-        .bptbl-area{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;}
-        .bptbar{padding:7px 14px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:1px solid #141428;flex-shrink:0;align-items:center;}
-        .bptbar select,.bptbar input{background:#141428;border:1px solid #2a2a45;color:#aaa;padding:5px 8px;border-radius:6px;font-size:0.7em;font-family:inherit;}
-        .bptbar select:focus,.bptbar input:focus{outline:none;border-color:#00d4ff;}
-        .bptbar .btsrch{flex:1;min-width:90px;}
-        .bpri2{padding:4px 14px;font-size:0.65em;color:#334;border-bottom:1px solid #141428;flex-shrink:0;display:flex;justify-content:space-between;}
-        .bpri2 .ri-inc{color:#00ff88;font-weight:700;}
-        .bpscroll{flex:1;overflow-y:auto;min-height:0;}
-        .bpscroll::-webkit-scrollbar{width:3px;}
-        .bpscroll::-webkit-scrollbar-thumb{background:#1e1e35;border-radius:2px;}
-
-        table.bptable{width:100%;border-collapse:collapse;font-size:0.73em;}
-        table.bptable th{background:#0e0e22;padding:7px 10px;text-align:left;color:#00d4ff;position:sticky;top:0;z-index:5;cursor:pointer;white-space:nowrap;font-size:0.82em;border-bottom:1px solid #1e1e38;user-select:none;}
-        table.bptable th:hover{background:#141428;}
-        table.bptable td{padding:6px 10px;border-bottom:1px solid #121225;color:#aaa;vertical-align:middle;}
-        table.bptable tr:hover td{background:#121228;}
-        table.bptable tr:last-child td{border-bottom:none;}
-
-        .tbdg{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;font-size:0.82em;font-weight:700;}
-        .tbdg.ride{background:#1e88e511;color:#42a5f5;border:1px solid #1e88e533;}
-        .tbdg.food{background:#ef6c0011;color:#ffa726;border:1px solid #ef6c0033;}
-        .tbdg.send{background:#2e7d3211;color:#66bb6a;border:1px solid #2e7d3233;}
-        .tbdg.shop{background:#6a1b9a11;color:#ce93d8;border:1px solid #6a1b9a33;}
-
-        .tcdate{color:#556;font-size:0.88em;}
-        .tctime{color:#ffd600;font-weight:700;font-family:monospace;}
-        .tcinc{color:#00ff88;font-weight:700;}
-        .tcnote{color:#445;max-width:120px;font-size:0.9em;}
-        .tcdel{background:transparent;border:1px solid #ff336633;color:#ff3366;padding:2px 7px;border-radius:4px;cursor:pointer;font-size:0.72em;transition:all 0.15s;}
-        .tcdel:hover{background:#ff3366;color:#fff;}
-        .sarr{font-size:0.72em;margin-left:3px;color:#00d4ff;}
-
-        .nodata{padding:36px 16px;text-align:center;color:#334;}
-        .nodata .nd-ico{font-size:2.5em;margin-bottom:8px;}
-        .nodata p{font-size:0.8em;line-height:1.5;}
-
-        /* ANALITIK */
-        .analitik-wrap{padding:14px;overflow-y:auto;flex:1;}
-        .analitik-wrap::-webkit-scrollbar{width:3px;}
-        .analitik-wrap::-webkit-scrollbar-thumb{background:#1e1e38;border-radius:2px;}
-        .ana-section{margin-bottom:16px;}
-        .ana-title{font-size:0.72em;color:#ff6b35;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
-        .type-dist{display:flex;flex-direction:column;gap:4px;}
-        .type-bar-row{display:flex;align-items:center;gap:8px;font-size:0.72em;}
-        .type-bar-lbl{width:60px;color:#778;flex-shrink:0;}
-        .type-bar-track{flex:1;background:#141428;border-radius:3px;height:8px;overflow:hidden;}
-        .type-bar-fill{height:100%;border-radius:3px;transition:width 0.3s;}
-        .type-bar-cnt{width:30px;text-align:right;color:#556;flex-shrink:0;}
-        .income-hist{display:flex;align-items:flex-end;gap:2px;height:50px;}
-        .trend-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:0.72em;border-bottom:1px solid #141428;}
-        .trend-row:last-child{border-bottom:none;}
-        .trend-val{font-weight:700;}
-
-        /* GLOBAL STATS TAB */
-        .gstats-wrap{overflow-y:auto;}
-        .gstats-wrap::-webkit-scrollbar{width:3px;}
-
-        /* RESPONSIVE */
-        @media(max-width:768px){
-            .layout{grid-template-columns:1fr;grid-template-rows:auto 1fr;}
-            .sb{max-height:45vh;}
-            .bpst{grid-template-columns:repeat(3,1fr);}
-            .bpbox{max-height:96vh;}
-            .search-results{position:fixed;top:auto;left:10px;right:10px;}
-        }
-    </style>
+@media(max-width:768px){
+  #sidebar{width:min(320px,95vw);}
+  .bmenu{display:flex!important;}
+  .frow{grid-template-columns:1fr;}
+  .huser{display:none;}
+  .map-heat-bar{bottom:20px;padding:6px 12px;gap:7px;}
+  .map-heat-bar.with-sb{left:50%;transform:translateX(-50%);}
+}
+</style>
 </head>
 <body>
 
+<!-- MAP -->
+<div id="mapRoot"><div id="map"></div></div>
+
+<!-- HEAT SCALE BAR on map -->
+<div class="map-heat-bar" id="heatBar">
+  <span class="heat-label">Kepadatan:</span>
+  <div class="heat-swatch">
+    <div class="hs-item"><div class="hs-dot" style="background:#6a0000"></div>Sgt Ramai</div>
+    <div class="hs-sep">›</div>
+    <div class="hs-item"><div class="hs-dot" style="background:#e74c3c"></div>Ramai</div>
+    <div class="hs-sep">›</div>
+    <div class="hs-item"><div class="hs-dot" style="background:#f39c12"></div>Sedang</div>
+    <div class="hs-sep">›</div>
+    <div class="hs-item"><div class="hs-dot" style="background:#27ae60"></div>Sepi</div>
+  </div>
+</div>
+
+<!-- MAP CONTROLS -->
+<div class="map-ctrl" id="mapCtrl">
+  <button class="mbtn" onclick="resetView()"><i class="fas fa-home"></i> Reset</button>
+  <button class="mbtn" onclick="toggleLayer()"><i class="fas fa-layer-group"></i> <span id="layerLbl">Satelit</span></button>
+</div>
+
+<!-- Filter badge on map -->
+<div class="mfbadge" id="mfbadge">
+  <i class="fas fa-filter" style="color:var(--shop33)"></i>
+  <span id="mftext">—</span>
+</div>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+  <div class="lbox">
+    <div class="llogo">🛵</div>
+    <div class="ltitle">shop33 Driver Tracker</div>
+    <div class="lsub">Pekalongan & Batang — Analisis Kepadatan Order</div>
+    <div class="linp"><i class="fas fa-user-tag"></i>
+      <select id="lRole"><option value="">— Pilih Role —</option><option value="admin">⚙️ Admin</option><option value="driver">🛵 Driver</option></select>
+    </div>
+    <div class="linp"><i class="fas fa-user"></i><input type="text" id="lUser" placeholder="Username" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <div class="linp"><i class="fas fa-lock"></i><input type="password" id="lPass" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <button class="lbtn" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Masuk</button>
+    <div class="lerr" id="lErr"></div>
+    <div class="ldemo">Demo: <strong>Memahami Masa Lalu Memenangkan Masa Depan</strong></div>
+  </div>
+</div>
+
 <!-- HEADER -->
-<div class="hdr">
-    <div class="hdr-left">
-        <div class="hdr-logo">🛵</div>
-        <div>
-            <div class="hdr-title">Shop33 Radar <span style="color:#ff6b35">Emiten ADIT</span></div>
-            <div class="hdr-sub">Smart Heatmap · Search Alamat · Historis Order · Analitik</div>
-        </div>
-    </div>
-    <div class="hdr-right">
-        <div class="clock" id="clock">00:00:00</div>
-        <div class="live-dot">LIVE</div>
-    </div>
+<div id="hdr">
+  <button class="hbtn bmenu" onclick="toggleSB()"><i class="fas fa-bars"></i></button>
+  <div class="hlogo"><span>shop33</span>Driver Tracker</div>
+  <div class="huser"><strong id="hName">—</strong><span id="hRole">—</span></div>
+  <button class="hbtn" onclick="toggleTheme()" id="themeBtn" title="Dark/Light"><i class="fas fa-moon"></i></button>
+  <button class="hlogout" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Keluar</button>
 </div>
 
-<!-- LAYOUT -->
-<div class="layout">
+<!-- SIDEBAR -->
+<div id="sidebar">
 
-    <!-- SIDEBAR -->
-    <div class="sb">
-
-        <!-- TAB NAV -->
-        <div class="pnl" style="padding-bottom:0">
-            <div class="tabs" id="sbTabs">
-                <button class="tab active" onclick="sbTab(0,this)">🔍 Filter</button>
-                <button class="tab" onclick="sbTab(1,this)">➕ Input</button>
-                <button class="tab" onclick="sbTab(2,this)">📊 Stats</button>
-                <button class="tab" onclick="sbTab(3,this)">📋 Data</button>
-            </div>
-        </div>
-
-        <!-- TAB 0: FILTER -->
-        <div class="tc show" id="tc0">
-            <div class="pnl">
-                <div class="pnl-hd">🕐 Filter Jam <span class="ph-r" id="fLabel">Semua Jam</span></div>
-                <div class="sldr-wrap">
-                    <div class="sldr-lbl"><span>00:00</span><span>Geser jam</span><span>23:00</span></div>
-                    <input type="range" id="sldr" min="0" max="23" value="6" oninput="onSldr(this.value)">
-                    <div class="sldr-val" id="sldrVal">06:00</div>
-                </div>
-                <div class="brow">
-                    <button class="btn bsm bpri" onclick="addSldrHour()">➕ Tambah</button>
-                    <button class="btn bsm bsec" onclick="clearFilter()">🔄 Reset</button>
-                    <button class="btn bsm bpri" onclick="applyFilter()">✅ Apply</button>
-                </div>
-                <div style="margin:10px 0 5px;font-size:0.65em;color:#445;">Pilih langsung <span style="color:#00ff88">●</span>=ada data:</div>
-                <div class="hgrid" id="hgrid"></div>
-                <div class="brow">
-                    <button class="btn bxs bwrn" onclick="selPeak()">🔥 Puncak</button>
-                    <button class="btn bxs bsec" onclick="selAll()">⭐ Semua</button>
-                    <button class="btn bxs bpur" onclick="selNow()">📍 Skrg</button>
-                    <button class="btn bxs bsec" onclick="selMorning()">🌅 Pagi</button>
-                    <button class="btn bxs bsec" onclick="selEvening()">🌆 Sore</button>
-                    <button class="btn bxs bsec" onclick="selNight()">🌙 Mlm</button>
-                </div>
-            </div>
-            <div class="pnl">
-                <div class="pnl-hd">📊 Statistik Wilayah</div>
-                <div class="sgrid">
-                    <div class="scard"><div class="sv" id="stTotal">0</div><div class="sl">Total Order</div></div>
-                    <div class="scard"><div class="sv" id="stIncome">0</div><div class="sl">Omset (rb)</div></div>
-                    <div class="scard"><div class="sv" id="stHot" style="font-size:0.8em">–</div><div class="sl">🔥 Hotspot</div></div>
-                    <div class="scard"><div class="sv" id="stPeak">–</div><div class="sl">⏰ Jam Puncak</div></div>
-                </div>
-            </div>
-            <div class="pnl">
-                <div class="pnl-hd">🏆 Top Lokasi <span class="ph-r">klik → detail</span></div>
-                <ul class="tlist" id="topList"></ul>
-            </div>
-        </div>
-
-        <!-- TAB 1: INPUT -->
-        <div class="tc" id="tc1">
-            <div class="pnl">
-                <div class="pnl-hd">➕ Input Historis Order</div>
-
-                <!-- LOKASI DROPDOWN -->
-                <div class="fg">
-                    <label>📍 Lokasi</label>
-                    <select id="fLoc" onchange="onLocChg()"></select>
-                </div>
-
-                <!-- ===== FORM LOKASI BARU ===== -->
-                <div id="newLocWrap" style="display:none;background:#141428;border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid #2a2a45;">
-                    <div style="font-size:0.68em;color:#ff6b35;margin-bottom:8px;font-weight:700;">
-                        📌 Tambah Lokasi Baru
-                    </div>
-
-                    <!-- SEARCH ALAMAT -->
-                    <div style="font-size:0.65em;color:#00d4ff;margin-bottom:5px;font-weight:700;">🔍 Cari Alamat / Nama Tempat</div>
-                    <div class="search-wrap" id="searchWrap">
-                        <input
-                            type="text"
-                            id="addrSearch"
-                            class="search-input"
-                            placeholder="cth: Alun-alun Batang, Pasar Pagi Pekalongan..."
-                            oninput="onAddrInput(this.value)"
-                            onkeydown="onAddrKey(event)"
-                            autocomplete="off"
-                        >
-                        <span class="search-icon" id="srchIcon">🔍</span>
-                        <button class="search-clear" id="srchClear" onclick="clearAddrSearch()">✕</button>
-                        <div class="search-loading" id="srchLoad"><div class="spin"></div></div>
-                        <div class="search-results" id="srchResults"></div>
-                    </div>
-
-                    <!-- ATAU klik peta -->
-                    <div style="font-size:0.62em;color:#445;text-align:center;margin:5px 0;display:flex;align-items:center;gap:6px;">
-                        <div style="flex:1;height:1px;background:#2a2a45;"></div>
-                        <span>atau klik langsung di peta</span>
-                        <div style="flex:1;height:1px;background:#2a2a45;"></div>
-                    </div>
-
-                    <!-- KOORDINAT DISPLAY -->
-                    <div class="coord-display" id="coordDisplay">
-                        <div class="cd-title">📐 Koordinat Terpilih</div>
-                        <div class="cd-row">
-                            <div class="cd-field">
-                                <label>Latitude</label>
-                                <input type="text" id="fLat" readonly placeholder="–">
-                            </div>
-                            <div class="cd-field">
-                                <label>Longitude</label>
-                                <input type="text" id="fLng" readonly placeholder="–">
-                            </div>
-                        </div>
-                        <div class="cd-addr" id="cdAddr"></div>
-                    </div>
-
-                    <!-- NAMA & AREA -->
-                    <div class="fg">
-                        <label>Nama Lokasi <span style="color:#556">(otomatis terisi atau ubah manual)</span></label>
-                        <input type="text" id="fNm" placeholder="cth: Pasar Pagi Batang">
-                    </div>
-                    <div class="fg">
-                        <label>Area / Kecamatan</label>
-                        <input type="text" id="fArea" placeholder="cth: Pekalongan Barat">
-                    </div>
-                </div>
-
-                <!-- JAM MENIT OMSET -->
-                <div class="g3">
-                    <div class="fg"><label>🕐 Jam (0-23)</label><input type="number" id="fH" min="0" max="23" placeholder="7"></div>
-                    <div class="fg"><label>⏱ Menit (0-59)</label><input type="number" id="fM" min="0" max="59" placeholder="30"></div>
-                    <div class="fg"><label>💰 Omset (rb)</label><input type="number" id="fInc" placeholder="15" min="0"></div>
-                </div>
-                <div class="g2">
-                    <div class="fg">
-                        <label>📦 Jenis Order</label>
-                        <select id="fTyp">
-                            <option value="ride">🛵 Shop33Ride</option>
-                            <option value="food">🍱 Shop33Food</option>
-                            <option value="send">📦 Shop33Send</option>
-                            <option value="shop">🛍️ Shop33Shop</option>
-                        </select>
-                    </div>
-                    <div class="fg"><label>📅 Tanggal</label><input type="date" id="fDt"></div>
-                </div>
-                <div class="fg">
-                    <label>📝 Catatan</label>
-                    <textarea id="fNote" rows="2" style="resize:none" placeholder="kondisi, situasi, cuaca..."></textarea>
-                </div>
-                <button class="btn bmd bsuc blk" onclick="addHist()">💾 Simpan Historis</button>
-
-                <div style="margin-top:10px;padding-top:10px;border-top:1px solid #1e1e35;">
-                    <div style="font-size:0.68em;color:#556;margin-bottom:6px;">📥 Import / Export:</div>
-                    <div class="brow">
-                        <button class="btn bsm bwrn" onclick="exportData()">📤 JSON</button>
-                        <button class="btn bsm bsec" onclick="exportCSV()">📊 CSV</button>
-                        <button class="btn bsm bsec" onclick="document.getElementById('impF').click()">📂 Import</button>
-                    </div>
-                    <input type="file" id="impF" accept=".json" style="display:none" onchange="importJSON(this)">
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 2: STATS GLOBAL -->
-        <div class="tc" id="tc2">
-            <div class="pnl gstats-wrap">
-                <div class="pnl-hd">📊 Analitik Global</div>
-                <div class="sgrid" style="margin-bottom:12px;">
-                    <div class="scard"><div class="sv" id="gTotal">0</div><div class="sl">Total Order</div></div>
-                    <div class="scard"><div class="sv" id="gInc">0</div><div class="sl">Total Omset</div></div>
-                    <div class="scard"><div class="sv" id="gAvg">0</div><div class="sl">Rata-rata</div></div>
-                    <div class="scard"><div class="sv" id="gLok">0</div><div class="sl">Lokasi Aktif</div></div>
-                </div>
-                <div class="ana-title">📦 Distribusi Tipe Order</div>
-                <div class="type-dist" id="typeDist" style="margin-bottom:12px;"></div>
-                <div class="ana-title">⏰ 5 Jam Tersibuk</div>
-                <div id="topHours" style="margin-bottom:12px;"></div>
-                <div class="ana-title">📅 7 Hari Terakhir</div>
-                <div id="last7days"></div>
-            </div>
-        </div>
-
-        <!-- TAB 3: DATA MANAGEMENT -->
-        <div class="tc" id="tc3">
-            <div class="pnl">
-                <div class="pnl-hd">📋 Riwayat <span class="ph-r">20 terakhir</span></div>
-                <div class="hscroll" id="histList"></div>
-            </div>
-            <div class="pnl">
-                <div class="pnl-hd">⚙️ Kelola Data</div>
-                <div class="brow">
-                    <button class="btn bsm bwrn" onclick="exportData()">📤 Export JSON</button>
-                    <button class="btn bsm bsec" onclick="exportCSV()">📊 Export CSV</button>
-                </div>
-                <div class="brow">
-                    <button class="btn bsm bdng" onclick="showModal('cache')">🗑️ Hapus Cache</button>
-                    <button class="btn bsm bdng" onclick="showModal('all')">💥 Hapus Semua</button> 
-                </div>
-                <div style="margin-top:10px;padding:9px;background:#141428;border-radius:7px;font-size:0.68em;color:#445;line-height:1.7;">
-                    <b style="color:#556">Info Penyimpanan:</b><br>
-                    Historis: <span id="infoTotal" style="color:#00d4ff">0</span> record<br>
-                    Lokasi: <span id="infoLok" style="color:#00d4ff">0</span> titik<br>
-                    Terbaru: <span id="infoLatest" style="color:#00ff88">–</span>
-                </div>
-            </div>
-        </div>
-
-    </div><!-- /sidebar -->
-
-    <!-- MAP -->
-    <div class="mapwrap">
-        <div id="map"></div>
-        <div class="mib">
-            <div class="mib-t">🗺️ Pekalongan & Batang</div>
-            <div class="mib-v" id="mibF">Semua Jam</div>
-            <div class="mib-s" id="mibC">0 order terpetakan</div>
-        </div>
-        <div class="legend">
-            <div class="leg-t">🫧 Bubble Heatmap</div>
-            <div class="leg-r"><div class="leg-d" style="background:#ff1744"></div>Sangat Ramai (&gt;10)</div>
-            <div class="leg-r"><div class="leg-d" style="background:#ff6d00"></div>Ramai (6–10)</div>
-            <div class="leg-r"><div class="leg-d" style="background:#ffd600"></div>Sedang (3–5)</div>
-            <div class="leg-r"><div class="leg-d" style="background:#00e676"></div>Sepi (1–2)</div>
-            <div class="leg-r"><div class="leg-d" style="background:#2979ff;opacity:0.55"></div>Belum Ada Data</div>
-            <div class="leg-h">💡 Klik bubble → historis<br>💡 Klik peta → koordinat</div>
-        </div>
-        <div class="ctip" id="ctip"></div>
+  <!-- FILTER PANEL - DROPDOWN -->
+  <div class="fpanel">
+    <div class="fp-head">
+      <div class="fp-title"><i class="fas fa-sliders-h"></i> Filter Analisis Histori</div>
+      <button class="fp-reset" id="fpReset" onclick="clearFilters()">✕ Reset</button>
     </div>
 
-</div><!-- /layout -->
-
-<!-- BUBBLE POPUP -->
-<div class="bpbg" id="bpbg">
-    <div class="bpbox">
-        <div class="bph">
-            <div class="bph-l">
-                <h3 id="bpName">📍 Lokasi</h3>
-                <div class="bph-area" id="bpArea">Area</div>
-                <div class="bph-coord" id="bpCoord">–</div>
-            </div>
-            <div class="bph-r">
-                <span class="bpill" id="bpPill">●</span>
-                <button class="bpclose" onclick="closeBp()">✕</button>
-            </div>
-        </div>
-        <div class="bpst">
-            <div class="bpsc"><div class="bpsv" id="bpStT">0</div><div class="bpsl">Total Order</div></div>
-            <div class="bpsc"><div class="bpsv" id="bpStI">0</div><div class="bpsl">Omset (rb)</div></div>
-            <div class="bpsc"><div class="bpsv" id="bpStA">0</div><div class="bpsl">Rata-rata</div></div>
-            <div class="bpsc"><div class="bpsv" id="bpStP">–</div><div class="bpsl">Jam Puncak</div></div>
-            <div class="bpsc"><div class="bpsv" id="bpStM">0</div><div class="bpsl">Max/Hari</div></div>
-        </div>
-        <div class="bptabs">
-            <button class="bptab active" onclick="bpTab(0,this)" id="bpT0">📋 Historis</button>
-            <button class="bptab" onclick="bpTab(1,this)" id="bpT1">📊 Grafik</button>
-            <button class="bptab" onclick="bpTab(2,this)" id="bpT2">📈 Analitik</button>
-        </div>
-
-        <!-- TAB 0: HISTORIS -->
-        <div id="bpTab0" style="display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0;">
-            <div class="bpchart">
-                <div class="bpcht">
-                    <span>📊 Sebaran per Jam (klik bar = filter)</span>
-                    <button class="btn bxs bsec" onclick="resetBpHr()">Reset jam</button>
-                </div>
-                <div class="hbars" id="bpBars"></div>
-            </div>
-            <div class="bptbl-area">
-                <div class="bptbar">
-                    <select id="bpFTyp" onchange="renderBpTbl()">
-                        <option value="">Semua Tipe</option>
-                        <option value="ride">🛵 Shop33Ride</option>
-                        <option value="food">🍱 Shop33Food</option>
-                        <option value="send">📦 Shop33Send</option>
-                        <option value="shop">🛍️ Shop33Shop</option>
-                    </select>
-                    <select id="bpFHr" onchange="onBpHrSel()"><option value="">Semua Jam</option></select>
-                    <input type="text" class="btsrch" id="bpSrch" placeholder="🔍 Cari..." oninput="renderBpTbl()">
-                </div>
-                <div class="bpri2">
-                    <span id="bpRInfo">0 data</span>
-                    <span class="ri-inc" id="bpRInc">Rp 0rb</span>
-                </div>
-                <div class="bpscroll">
-                    <table class="bptable">
-                        <thead>
-                            <tr>
-                                <th onclick="bpSort('date')">📅 Tanggal<span class="sarr" id="sa_date"></span></th>
-                                <th onclick="bpSort('time')">🕐 Waktu<span class="sarr" id="sa_time"></span></th>
-                                <th onclick="bpSort('type')">📦 Tipe<span class="sarr" id="sa_type"></span></th>
-                                <th onclick="bpSort('income')">💰 Omset<span class="sarr" id="sa_income"></span></th>
-                                <th>📝 Catatan</th>
-                                <th style="width:55px">⚙️</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bpTbody"></tbody>
-                    </table>
-                    <div class="nodata" id="bpND" style="display:none">
-                        <div class="nd-ico">📭</div>
-                        <p>Tidak ada data<br>untuk filter ini</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 1: GRAFIK -->
-        <div id="bpTab1" style="display:none;flex:1;overflow-y:auto;padding:14px;">
-            <div class="ana-title">📊 Detail per Jam</div>
-            <div id="bpHrDet"></div>
-            <div class="ana-title" style="margin-top:14px;">📅 Distribusi per Hari</div>
-            <div id="bpDayDet"></div>
-        </div>
-
-        <!-- TAB 2: ANALITIK -->
-        <div id="bpTab2" style="display:none;flex:1;overflow-y:auto;">
-            <div class="analitik-wrap">
-                <div class="ana-section">
-                    <div class="ana-title">📦 Distribusi Tipe</div>
-                    <div class="type-dist" id="bpTypDist"></div>
-                </div>
-                <div class="ana-section">
-                    <div class="ana-title">💰 Tren Omset (10 entry terakhir)</div>
-                    <div class="income-hist" id="bpIncH"></div>
-                    <div style="font-size:0.6em;color:#334;margin-top:4px;text-align:center;">← 10 entry terbaru →</div>
-                </div>
-                <div class="ana-section">
-                    <div class="ana-title">📈 Ringkasan Performa</div>
-                    <div id="bpPerf"></div>
-                </div>
-                <div class="ana-section">
-                    <div class="ana-title">🗓️ Hari Paling Produktif</div>
-                    <div id="bpBestD"></div>
-                </div>
-            </div>
-        </div>
+    <!-- Row 1: Hari + Jam -->
+    <div class="fdr">
+      <div class="fd-wrap">
+        <div class="fd-label"><i class="fas fa-calendar-week"></i> Hari</div>
+        <select class="fd-select" id="fdHari" onchange="onFilterChange()">
+          <option value="">📅 Semua Hari</option>
+          <option value="1">📌 Senin</option>
+          <option value="2">📌 Selasa</option>
+          <option value="3">📌 Rabu</option>
+          <option value="4">📌 Kamis</option>
+          <option value="5">📌 Jumat</option>
+          <option value="6">📌 Sabtu</option>
+          <option value="0">📌 Minggu</option>
+        </select>
+      </div>
+      <div class="fd-wrap">
+        <div class="fd-label"><i class="fas fa-clock"></i> Jam</div>
+        <select class="fd-select" id="fdJam" onchange="onFilterChange()">
+          <option value="">🕐 Semua Jam</option>
+          <optgroup label="🌅 Pagi">
+            <option value="preset_pagi">🌅 Pagi (06–10)</option>
+          </optgroup>
+          <optgroup label="☀️ Siang">
+            <option value="preset_siang">☀️ Siang (10–14)</option>
+          </optgroup>
+          <optgroup label="🌆 Sore">
+            <option value="preset_sore">🌆 Sore (14–18)</option>
+          </optgroup>
+          <optgroup label="🌙 Malam">
+            <option value="preset_malam">🌙 Malam (18–24)</option>
+          </optgroup>
+          <optgroup label="⏱ Pilih Jam Spesifik"></optgroup>
+        </select>
+      </div>
     </div>
+
+    <!-- Row 2: Kepadatan -->
+    <div class="fd-wrap">
+      <div class="fd-label"><i class="fas fa-fire"></i> Tampilkan Area dengan Kepadatan</div>
+      <select class="fd-density" id="fdDensity" onchange="onFilterChange()">
+        <option value="all">🔵 Semua Tingkat Kepadatan</option>
+        <option value="sgt">🔥 Sangat Ramai saja (≥75% max order)</option>
+        <option value="ramai">🔴 Ramai saja (40–74% max order)</option>
+        <option value="sedang">🟡 Sedang saja (15–39% max order)</option>
+        <option value="sepi">🟢 Sepi saja (&lt;15% max order)</option>
+      </select>
+    </div>
+
+    <!-- Selected result card -->
+    <div class="sel-card" id="selCard">
+      <div class="sc-top">
+        <div class="sc-icon" id="scIcon">🕐</div>
+        <div class="sc-info">
+          <div class="sc-main" id="scMain">—</div>
+          <div class="sc-sub" id="scSub">—</div>
+        </div>
+        <div class="sc-lv" id="scLv">—</div>
+        <button class="sc-close" onclick="clearFilters()">×</button>
+      </div>
+      <div class="sc-stats">
+        <div class="sc-stat"><div class="sc-stat-n" id="scTotal">0</div><div class="sc-stat-l">Order</div></div>
+        <div class="sc-stat"><div class="sc-stat-n" id="scArea">0</div><div class="sc-stat-l">Area</div></div>
+        <div class="sc-stat"><div class="sc-stat-n" id="scDriver">0</div><div class="sc-stat-l">Driver</div></div>
+      </div>
+      <div class="sc-tip" id="scTip"><i class="fas fa-lightbulb"></i> —</div>
+    </div>
+  </div>
+
+  <!-- Active filter bar -->
+  <div class="afbar" id="afbar">
+    <i class="fas fa-filter"></i> Filter Aktif:
+    <span id="aftags"></span>
+  </div>
+
+  <!-- Rekomendasi strip -->
+  <div class="reko-strip" id="rekoStrip">
+    <div class="reko-title"><i class="fas fa-map-marker-alt"></i> 💡 Rekomendasi Area Mangkal</div>
+    <div class="reko-list" id="rekoList"></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabnav">
+    <button class="tbtn on" onclick="goTab('dash')" data-t="dash"><i class="fas fa-chart-pie"></i>Dashboard</button>
+    <button class="tbtn" onclick="goTab('rekam')" data-t="rekam"><i class="fas fa-plus-circle"></i>Rekam</button>
+    <button class="tbtn" onclick="goTab('hist')" data-t="hist"><i class="fas fa-history"></i>Histori</button>
+    <button class="tbtn ao" onclick="goTab('users')" data-t="users" style="display:none"><i class="fas fa-users"></i>Users</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="tcont on" id="tab-dash">
+    <div class="sgrid">
+      <div class="sbox o"><div class="snum" id="stTotal">0</div><div class="slbl">Total Order</div><span class="sico">📦</span></div>
+      <div class="sbox g"><div class="snum" id="stHari">0</div><div class="slbl">Hari Ini</div><span class="sico">📅</span></div>
+      <div class="sbox b"><div class="snum" id="stOnline">0</div><div class="slbl">Online</div><span class="sico">🟢</span></div>
+      <div class="sbox p"><div class="snum" id="stDriver">0</div><div class="slbl">Driver</div><span class="sico">🛵</span></div>
+    </div>
+    <div class="stitle">🏆 Ranking Area (Filter Aktif)</div>
+    <div id="areaRank"></div>
+    <div class="stitle">🟢 Driver Aktif Online</div>
+    <div id="activeDrv"></div>
+    <div class="stitle">⏱️ Rekaman Terbaru</div>
+    <div id="recentRec"></div>
+  </div>
+
+  <!-- REKAM -->
+  <div class="tcont" id="tab-rekam">
+    <div class="card">
+      <div class="chead"><i class="fas fa-map-pin"></i> Rekam Lokasi Order Baru</div>
+      <div class="cbody">
+        <div class="fg"><label class="fl">Nama Lokasi / Alamat</label>
+          <input type="text" id="rLokasi" class="fc" placeholder="Jl. Diponegoro No.5..."/></div>
+        <div class="frow">
+          <div class="fg"><label class="fl">Area / Kota</label>
+            <select id="rKota" class="fc">
+              <option value="">Pilih Area</option>
+              <optgroup label="Pekalongan">
+                <option>Pekalongan Barat</option><option>Pekalongan Timur</option>
+                <option>Pekalongan Utara</option><option>Pekalongan Selatan</option>
+                <option>Kedungwuni</option><option>Kajen</option>
+                <option>Wiradesa</option><option>Tirto</option><option>Bojong</option><option>Sragi</option>
+              </optgroup>
+              <optgroup label="Batang">
+                <option>Batang Kota</option><option>Warungasem</option>
+                <option>Subah</option><option>Gringsing</option>
+                <option>Bawang</option><option>Tulis</option><option>Limpung</option><option>Bandar</option>
+              </optgroup>
+            </select></div>
+          <div class="fg"><label class="fl">Status</label>
+            <select id="rStatus" class="fc">
+              <option value="pickup">📦 Ambil Paket</option>
+              <option value="delivery">🚚 Antar Paket</option>
+              <option value="done">✅ Selesai</option>
+              <option value="gagal">❌ Gagal</option>
+            </select></div>
+        </div>
+        <div class="frow">
+          <div class="fg"><label class="fl">Jam (1–24)</label><select id="rJam" class="fc"></select></div>
+          <div class="fg"><label class="fl">Menit</label><select id="rMenit" class="fc"></select></div>
+        </div>
+        <div class="fg"><label class="fl">Catatan</label>
+          <input type="text" id="rNote" class="fc" placeholder="COD, fragile, dll..."/></div>
+        <div class="fg">
+          <label class="fl">Koordinat (Lat / Lng)</label>
+          <div style="display:flex;gap:5px">
+            <input type="number" id="rLat" class="fc" placeholder="-6.888" step="any"/>
+            <input type="number" id="rLng" class="fc" placeholder="109.667" step="any"/>
+          </div>
+          <div class="locnote"><i class="fas fa-hand-pointer"></i> Klik peta untuk koordinat otomatis</div>
+        </div>
+        <button class="btn bp bblk" onclick="saveRek()"><i class="fas fa-save"></i> Simpan Rekaman</button>
+        <button class="btn bx bblk" onclick="getGPS()"><i class="fas fa-crosshairs"></i> GPS Saya</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORI -->
+  <div class="tcont" id="tab-hist">
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px">
+      <select id="fHSt" class="fc" style="flex:1;min-width:90px" onchange="renderHist()">
+        <option value="">Semua Status</option>
+        <option value="pickup">📦 Pickup</option><option value="delivery">🚚 Delivery</option>
+        <option value="done">✅ Selesai</option><option value="gagal">❌ Gagal</option>
+      </select>
+      <input type="date" id="fHTgl" class="fc" style="flex:1;min-width:100px" onchange="renderHist()"/>
+    </div>
+    <div style="display:flex;gap:5px;margin-bottom:7px">
+      <button class="btn bs bsm" onclick="exportData('driver')"><i class="fas fa-file-excel"></i> Export</button>
+      <button class="btn bd bsm" onclick="confirmClear()" style="margin-left:auto"><i class="fas fa-trash"></i> Hapus Semua</button>
+    </div>
+    <div id="histList"></div>
+  </div>
+
+  <!-- USERS -->
+  <div class="tcont ao" id="tab-users" style="display:none">
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px">
+      <button class="btn bp bsm" onclick="showAddUser()"><i class="fas fa-user-plus"></i> Tambah</button>
+      <button class="btn bs bsm" onclick="exportData('admin')"><i class="fas fa-file-excel"></i> Export</button>
+      <label class="btn bi bsm" style="cursor:pointer"><i class="fas fa-file-import"></i> Import
+        <input type="file" id="importFile" accept=".xlsx,.csv" onchange="importData(event)" style="display:none"/>
+      </label>
+    </div>
+    <input type="text" id="searchUser" class="fc" placeholder="🔍 Cari nama / username..." oninput="renderUsers()" style="margin-bottom:7px"/>
+    <div id="usersList"></div>
+    <div class="divider"></div>
+    <div class="stitle">📋 Histori Semua Driver</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px">
+      <select id="aFD" class="fc" style="flex:1" onchange="renderAdminHist()"><option value="">Semua Driver</option></select>
+      <input type="date" id="aFT" class="fc" style="flex:1" onchange="renderAdminHist()"/>
+    </div>
+    <div id="adminHist"></div>
+  </div>
+
+</div><!-- /sidebar -->
+
+<!-- MODALS -->
+<div id="mEdit" class="moverlay hidden">
+  <div class="mbox">
+    <div class="mhead"><h3><i class="fas fa-edit"></i> Edit Rekaman</h3><button class="mclose" onclick="closeM('mEdit')">×</button></div>
+    <div class="mbody">
+      <input type="hidden" id="eId"/>
+      <div class="fg"><label class="fl">Nama Lokasi</label><input type="text" id="eLok" class="fc"/></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Jam</label><select id="eJam" class="fc"></select></div>
+        <div class="fg"><label class="fl">Menit</label><select id="eMenit" class="fc"></select></div>
+      </div>
+      <div class="fg"><label class="fl">Status</label>
+        <select id="eSt" class="fc">
+          <option value="pickup">📦 Ambil Paket</option><option value="delivery">🚚 Antar Paket</option>
+          <option value="done">✅ Selesai</option><option value="gagal">❌ Gagal</option>
+        </select></div>
+      <div class="fg"><label class="fl">Catatan</label><input type="text" id="eNote" class="fc"/></div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Latitude</label><input type="number" id="eLat" class="fc" step="any"/></div>
+        <div class="fg"><label class="fl">Longitude</label><input type="number" id="eLng" class="fc" step="any"/></div>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn bx" onclick="closeM('mEdit')">Batal</button><button class="btn bp" onclick="updateRek()"><i class="fas fa-save"></i> Simpan</button></div>
+  </div>
 </div>
 
-<!-- MODAL -->
-<div class="mbg" id="modBg">
-    <div class="mbox danger">
-        <div class="mico" id="modIco">⚠️</div>
-        <div class="mtit" id="modTit">Konfirmasi</div>
-        <div class="mtxt" id="modTxt"></div>
-        <div class="mbtns">
-            <button style="background:#1e1e35;color:#aaa;" onclick="closeModal()">Batal</button>
-            <button style="background:#ff3366;color:#fff;" onclick="doModal()">Hapus</button>
-        </div>
+<div id="mUser" class="moverlay hidden">
+  <div class="mbox">
+    <div class="mhead"><h3 id="mUT"><i class="fas fa-user-plus"></i> Tambah User</h3><button class="mclose" onclick="closeM('mUser')">×</button></div>
+    <div class="mbody">
+      <input type="hidden" id="eUID"/>
+      <div class="frow">
+        <div class="fg"><label class="fl">Nama Lengkap</label><input type="text" id="uNama" class="fc"/></div>
+        <div class="fg"><label class="fl">Username</label><input type="text" id="uUser" class="fc"/></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Password</label><input type="password" id="uPass" class="fc"/></div>
+        <div class="fg"><label class="fl">Role</label>
+          <select id="uRole" class="fc"><option value="driver">Driver</option><option value="admin">Admin</option></select></div>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">No. HP</label><input type="text" id="uPhone" class="fc"/></div>
+        <div class="fg"><label class="fl">Area</label>
+          <select id="uArea" class="fc">
+            <option value="Pekalongan">Pekalongan</option>
+            <option value="Batang">Batang</option>
+            <option value="Pekalongan & Batang">Keduanya</option>
+          </select></div>
+      </div>
     </div>
+    <div class="mfoot"><button class="btn bx" onclick="closeM('mUser')">Batal</button><button class="btn bp" onclick="saveUser()"><i class="fas fa-save"></i> Simpan</button></div>
+  </div>
 </div>
 
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
+<div id="mConfirm" class="moverlay hidden">
+  <div class="mbox" style="max-width:310px">
+    <div class="mhead"><h3><i class="fas fa-exclamation-triangle"></i> Konfirmasi</h3><button class="mclose" onclick="closeM('mConfirm')">×</button></div>
+    <div class="mbody" style="text-align:center;padding:24px 14px">
+      <div style="font-size:40px;margin-bottom:9px">🗑️</div>
+      <div id="confirmMsg" style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px"></div>
+      <div style="font-size:10px;color:var(--text3)">Tindakan ini tidak dapat dibatalkan.</div>
+    </div>
+    <div class="mfoot"><button class="btn bx" onclick="closeM('mConfirm')">Batal</button><button class="btn bd" id="confirmBtn"><i class="fas fa-trash"></i> Hapus</button></div>
+  </div>
+</div>
+
+<div class="toastwrap" id="toastwrap"></div>
 
 <script>
-'use strict';
+/* ============================================================
+   CONSTANTS
+============================================================ */
+const HARI_NAMES=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const JAM_PRESETS={pagi:[6,10],siang:[10,14],sore:[14,18],malam:[18,24]};
 
 /* ============================================================
-   KONSTANTA & DATA
+   DATABASE
 ============================================================ */
-const LOCS_DEF = [
-    {id:'pkl_kppn', name:'Markas Besar KPPN',        lat:-6.8843,lng:109.6650,area:'Pekalongan Kota'},
-    {id:'pkl_alun', name:'Alun-alun Pekalongan',     lat:-6.8886,lng:109.6753,area:'Pekalongan Kota'},
-    {id:'pkl_sta',  name:'Stasiun Pekalongan',        lat:-6.8878,lng:109.6697,area:'Pekalongan Kota'},
-    {id:'pkl_mall', name:'Mall/Giant Pekalongan',     lat:-6.8840,lng:109.6780,area:'Pekalongan Kota'},
-    {id:'pkl_rsbh', name:'RS Bhayangkara PKL',        lat:-6.8920,lng:109.6820,area:'Pekalongan Kota'},
-    {id:'pkl_set',  name:'Pasar Grosir Setono Betek', lat:-6.8970,lng:109.6600,area:'Pekalongan Kota'},
-    {id:'pkl_term', name:'Terminal Pekalongan',        lat:-6.9050,lng:109.6580,area:'Pekalongan Kota'},
-    {id:'pkl_uni',  name:'Universitas Pekalongan',     lat:-6.8780,lng:109.6850,area:'Pekalongan Kota'},
-    {id:'pkl_banj', name:'Pasar Banjarsari',           lat:-6.8810,lng:109.6750,area:'Pekalongan Kota'},
-    {id:'pkl_sri',  name:'Swalayan Sriratu',           lat:-6.8860,lng:109.6760,area:'Pekalongan Kota'},
-    {id:'pkl_bat',  name:'Kawasan Batik Pecenongan',   lat:-6.9030,lng:109.6620,area:'Pekalongan Kota'},
-    {id:'pkl_pes',  name:'Kawasan Pesisir PKL',        lat:-6.8680,lng:109.6720,area:'Pekalongan Kota'},
-    {id:'pkl_rsud', name:'RSUD Bendan Pekalongan',     lat:-6.8900,lng:109.6900,area:'Pekalongan Kota'},
-    {id:'pkl_simp', name:'Simpang Lima Pekalongan',    lat:-6.8870,lng:109.6770,area:'Pekalongan Kota'},
-    {id:'kpkl_wrd', name:'Wiradesa',                   lat:-6.8760,lng:109.7200,area:'Kab. Pekalongan'},
-    {id:'kpkl_kaj', name:'Kajen (Ibukota Kab.)',       lat:-7.0030,lng:109.6560,area:'Kab. Pekalongan'},
-    {id:'kpkl_kdw', name:'Kedungwuni',                 lat:-6.9730,lng:109.6730,area:'Kab. Pekalongan'},
-    {id:'kpkl_srg', name:'Sragi',                      lat:-6.9200,lng:109.7600,area:'Kab. Pekalongan'},
-    {id:'btg_alun', name:'Alun-alun Batang',           lat:-6.9025,lng:109.7322,area:'Batang'},
-    {id:'btg_sta',  name:'Stasiun Batang',             lat:-6.9010,lng:109.7280,area:'Batang'},
-    {id:'btg_psr',  name:'Pasar Batang',               lat:-6.9040,lng:109.7340,area:'Batang'},
-    {id:'btg_rsud', name:'RSUD Batang',                lat:-6.9060,lng:109.7360,area:'Batang'},
-    {id:'btg_term', name:'Terminal Batang',             lat:-6.9080,lng:109.7200,area:'Batang'},
-    {id:'btg_pol',  name:'Polres Batang',              lat:-6.9030,lng:109.7400,area:'Batang'},
-    {id:'btg_wel',  name:'Weleri',                     lat:-6.9400,lng:109.8100,area:'Batang'},
-    {id:'btg_gri',  name:'Gringsing',                  lat:-6.9800,lng:109.8600,area:'Batang'},
-    {id:'btg_ban',  name:'Bandar',                     lat:-7.0800,lng:109.7300,area:'Batang'},
-    {id:'btg_sub',  name:'Subah',                      lat:-6.9600,lng:109.7700,area:'Batang'},
-    {id:'pan_e',    name:'Rest Area Pantura PKL Timur',lat:-6.8900,lng:109.7100,area:'Pantura'},
-    {id:'pan_b',    name:'Rest Area Pantura Batang',   lat:-6.8980,lng:109.7600,area:'Pantura'},
-    {id:'pkl_bahagia',    name:'Markas Besar',   lat:-6.8843,lng:109.6650,area:'Pekalongan Kota'},
-];
-
-const DEMO_HIST = [
-    {id:1, locId:'pkl_alun',hour:7, minute:15,income:12,type:'ride',date:'2024-01-15',note:'Pagi ramai kantor'},
-    {id:2, locId:'pkl_alun',hour:7, minute:45,income:15,type:'food',date:'2024-01-16',note:'Sarapan ramai'},
-    {id:3, locId:'pkl_alun',hour:12,minute:0, income:20,type:'food',date:'2024-01-15',note:'Makan siang'},
-    {id:4, locId:'pkl_alun',hour:12,minute:30,income:18,type:'food',date:'2024-01-16',note:''},
-    {id:5, locId:'pkl_alun',hour:17,minute:20,income:18,type:'ride',date:'2024-01-15',note:'Pulang kantor'},
-    {id:6, locId:'pkl_alun',hour:19,minute:0, income:25,type:'food',date:'2024-01-17',note:'Malam nongkrong'},
-    {id:7, locId:'pkl_alun',hour:20,minute:30,income:30,type:'food',date:'2024-01-18',note:'Weekend malam'},
-    {id:8, locId:'pkl_sta', hour:5, minute:30,income:20,type:'ride',date:'2024-01-15',note:'Kereta subuh'},
-    {id:9, locId:'pkl_sta', hour:6, minute:0, income:25,type:'ride',date:'2024-01-15',note:'Kereta pertama'},
-    {id:10,locId:'pkl_sta', hour:6, minute:20,income:18,type:'ride',date:'2024-01-16',note:''},
-    {id:11,locId:'pkl_sta', hour:17,minute:10,income:30,type:'ride',date:'2024-01-15',note:'Kereta sore'},
-    {id:12,locId:'pkl_sta', hour:17,minute:45,income:28,type:'ride',date:'2024-01-16',note:''},
-    {id:13,locId:'pkl_sta', hour:18,minute:5, income:35,type:'ride',date:'2024-01-17',note:'Kereta malam'},
-    {id:14,locId:'pkl_mall',hour:10,minute:30,income:15,type:'food',date:'2024-01-15',note:''},
-    {id:15,locId:'pkl_mall',hour:13,minute:0, income:25,type:'food',date:'2024-01-15',note:'Weekend ramai'},
-    {id:16,locId:'pkl_mall',hour:19,minute:0, income:35,type:'food',date:'2024-01-17',note:'Malam minggu'},
-    {id:17,locId:'pkl_mall',hour:19,minute:30,income:40,type:'food',date:'2024-01-18',note:''},
-    {id:18,locId:'pkl_uni', hour:7, minute:0, income:10,type:'ride',date:'2024-01-15',note:'Mahasiswa masuk'},
-    {id:19,locId:'pkl_uni', hour:12,minute:15,income:8, type:'food',date:'2024-01-15',note:''},
-    {id:20,locId:'pkl_uni', hour:16,minute:0, income:12,type:'ride',date:'2024-01-15',note:'Kuliah selesai'},
-    {id:21,locId:'btg_alun',hour:8, minute:0, income:9, type:'ride',date:'2024-01-15',note:''},
-    {id:22,locId:'btg_alun',hour:12,minute:0, income:15,type:'food',date:'2024-01-15',note:''},
-    {id:23,locId:'btg_alun',hour:18,minute:30,income:20,type:'ride',date:'2024-01-16',note:'Sore ramai'},
-    {id:24,locId:'btg_psr', hour:5, minute:30,income:18,type:'ride',date:'2024-01-15',note:'Pasar subuh'},
-    {id:25,locId:'btg_psr', hour:6, minute:0, income:20,type:'ride',date:'2024-01-15',note:'Pasar pagi'},
-    {id:26,locId:'btg_psr', hour:6, minute:45,income:22,type:'ride',date:'2024-01-16',note:''},
-    {id:27,locId:'pkl_term',hour:6, minute:0, income:20,type:'ride',date:'2024-01-15',note:'Bus pertama'},
-    {id:28,locId:'pkl_term',hour:21,minute:30,income:25,type:'ride',date:'2024-01-16',note:'Bus malam'},
-    {id:29,locId:'pkl_set', hour:7, minute:0, income:12,type:'ride',date:'2024-01-15',note:'Grosir pagi'},
-    {id:30,locId:'pkl_set', hour:8, minute:30,income:10,type:'ride',date:'2024-01-16',note:''},
-    {id:31,locId:'pkl_rsbh',hour:7, minute:30,income:14,type:'ride',date:'2024-01-15',note:'Besuk pagi'},
-    {id:32,locId:'pkl_rsbh',hour:13,minute:0, income:16,type:'ride',date:'2024-01-16',note:'Besuk siang'},
-    {id:33,locId:'pkl_sri', hour:10,minute:0, income:18,type:'food',date:'2024-01-15',note:''},
-    {id:34,locId:'pkl_sri', hour:16,minute:0, income:22,type:'food',date:'2024-01-17',note:''},
-    {id:35,locId:'btg_rsud',hour:7, minute:30,income:12,type:'ride',date:'2024-01-15',note:''},
-    {id:36,locId:'btg_sta', hour:5, minute:45,income:20,type:'ride',date:'2024-01-15',note:'Kereta pertama'},
-    {id:37,locId:'btg_sta', hour:17,minute:20,income:25,type:'ride',date:'2024-01-17',note:'Kereta sore'},
-    {id:38,locId:'pan_e',   hour:12,minute:0, income:15,type:'food',date:'2024-01-16',note:'Sopir truk'},
-    {id:39,locId:'pkl_simp',hour:12,minute:0, income:18,type:'food',date:'2024-01-16',note:'Ramai siang'},
-    {id:40,locId:'pkl_simp',hour:17,minute:30,income:20,type:'ride',date:'2024-01-17',note:''},
-    {id:41,locId:'pkl_kppn',hour:1,minute:30,income:20,type:'ride',date:'2024-01-17',note:''},
-];
-
-/* ============================================================
-   STATE
-============================================================ */
-const S = {
-    locs:[],hist:[],fHours:[],nextId:600,
-    map:null,layers:[],searchMarker:null,
-    bp:{locId:null,sortF:'date',sortD:'desc',hrF:'',tab:0}
+const DEF={
+  users:[
+    {id:'u1',nama:'Administrator',username:'admin',password:'admin123',role:'admin',phone:'08111111111',area:'Pekalongan & Batang',online:true,lastSeen:new Date().toISOString(),lastLat:null,lastLng:null},
+    {id:'u2',nama:'Budi Santoso',username:'driver1',password:'driver123',role:'driver',phone:'08222222222',area:'Pekalongan',online:false,lastSeen:null,lastLat:-6.8879,lastLng:109.6753},
+    {id:'u3',nama:'Andi Kurniawan',username:'driver2',password:'driver456',role:'driver',phone:'08333333333',area:'Batang',online:false,lastSeen:null,lastLat:-6.9054,lastLng:109.7320},
+    {id:'u4',nama:'Rini Wulandari',username:'driver3',password:'driver789',role:'driver',phone:'08444444444',area:'Pekalongan & Batang',online:false,lastSeen:null,lastLat:-6.9721,lastLng:109.6489},
+  ],
+  rekaman:[
+    {id:'r1',userId:'u2',lokasi:'Jl. Sudirman No.10',kota:'Pekalongan Timur',jam:9,menit:30,status:'pickup',note:'',lat:-6.8879,lng:109.6753,tgl:'2024-01-15',hari:1,createdAt:'2024-01-15T09:30:00'},
+    {id:'r2',userId:'u2',lokasi:'Jl. Hayam Wuruk',kota:'Pekalongan Barat',jam:10,menit:15,status:'delivery',note:'COD',lat:-6.8950,lng:109.6620,tgl:'2024-01-15',hari:1,createdAt:'2024-01-15T10:15:00'},
+    {id:'r3',userId:'u3',lokasi:'Pasar Batang Lt.2',kota:'Batang Kota',jam:11,menit:45,status:'done',note:'',lat:-6.9054,lng:109.7320,tgl:'2024-01-15',hari:1,createdAt:'2024-01-15T11:45:00'},
+    {id:'r4',userId:'u4',lokasi:'Alfamart Kedungwuni',kota:'Kedungwuni',jam:9,menit:0,status:'delivery',note:'',lat:-6.9721,lng:109.6489,tgl:'2024-01-15',hari:1,createdAt:'2024-01-15T09:00:00'},
+    {id:'r5',userId:'u2',lokasi:'Indomaret Wiradesa',kota:'Wiradesa',jam:14,menit:20,status:'gagal',note:'',lat:-6.8670,lng:109.7100,tgl:'2024-01-15',hari:1,createdAt:'2024-01-15T14:20:00'},
+    {id:'r6',userId:'u3',lokasi:'Toko Sumber Rezeki',kota:'Batang Kota',jam:9,menit:0,status:'pickup',note:'',lat:-6.9080,lng:109.7350,tgl:'2024-01-16',hari:2,createdAt:'2024-01-16T09:00:00'},
+    {id:'r7',userId:'u4',lokasi:'Ruko Kajen Indah',kota:'Kajen',jam:15,menit:30,status:'done',note:'',lat:-7.0233,lng:109.6561,tgl:'2024-01-16',hari:2,createdAt:'2024-01-16T15:30:00'},
+    {id:'r8',userId:'u2',lokasi:'Alfamart Tirto',kota:'Tirto',jam:16,menit:10,status:'delivery',note:'',lat:-6.8731,lng:109.6532,tgl:'2024-01-16',hari:2,createdAt:'2024-01-16T16:10:00'},
+    {id:'r9',userId:'u3',lokasi:'Jl. Pemuda Batang',kota:'Batang Kota',jam:10,menit:0,status:'pickup',note:'COD',lat:-6.9010,lng:109.7280,tgl:'2024-01-16',hari:2,createdAt:'2024-01-16T10:00:00'},
+    {id:'r10',userId:'u4',lokasi:'Pasar Wiradesa',kota:'Wiradesa',jam:13,menit:45,status:'done',note:'',lat:-6.8660,lng:109.7090,tgl:'2024-01-17',hari:3,createdAt:'2024-01-17T13:45:00'},
+    {id:'r11',userId:'u2',lokasi:'Apotek Kimia Farma',kota:'Pekalongan Timur',jam:9,menit:50,status:'done',note:'',lat:-6.8860,lng:109.6780,tgl:'2024-01-17',hari:3,createdAt:'2024-01-17T09:50:00'},
+    {id:'r12',userId:'u3',lokasi:'Minimarket Jaya',kota:'Batang Kota',jam:14,menit:30,status:'delivery',note:'',lat:-6.9020,lng:109.7300,tgl:'2024-01-17',hari:3,createdAt:'2024-01-17T14:30:00'},
+    {id:'r13',userId:'u4',lokasi:'Kantor Pos Kedungwuni',kota:'Kedungwuni',jam:10,menit:20,status:'pickup',note:'',lat:-6.9700,lng:109.6500,tgl:'2024-01-18',hari:4,createdAt:'2024-01-18T10:20:00'},
+    {id:'r14',userId:'u2',lokasi:'SPBU Pekalongan Barat',kota:'Pekalongan Barat',jam:11,menit:0,status:'delivery',note:'',lat:-6.8970,lng:109.6590,tgl:'2024-01-18',hari:4,createdAt:'2024-01-18T11:00:00'},
+    {id:'r15',userId:'u3',lokasi:'Toko Batik Komar',kota:'Pekalongan Selatan',jam:9,menit:10,status:'pickup',note:'',lat:-6.9200,lng:109.6700,tgl:'2024-01-18',hari:4,createdAt:'2024-01-18T09:10:00'},
+    {id:'r16',userId:'u2',lokasi:'Masjid Agung Area',kota:'Pekalongan Timur',jam:13,menit:0,status:'pickup',note:'',lat:-6.8890,lng:109.6760,tgl:'2024-01-19',hari:5,createdAt:'2024-01-19T13:00:00'},
+    {id:'r17',userId:'u4',lokasi:'Plaza Pekalongan',kota:'Pekalongan Barat',jam:14,menit:30,status:'delivery',note:'',lat:-6.8940,lng:109.6610,tgl:'2024-01-19',hari:5,createdAt:'2024-01-19T14:30:00'},
+    {id:'r18',userId:'u3',lokasi:'Terminal Batang',kota:'Batang Kota',jam:9,menit:0,status:'done',note:'',lat:-6.9000,lng:109.7260,tgl:'2024-01-19',hari:5,createdAt:'2024-01-19T09:00:00'},
+    {id:'r19',userId:'u2',lokasi:'Indomaret Batang',kota:'Batang Kota',jam:10,menit:30,status:'pickup',note:'',lat:-6.9030,lng:109.7310,tgl:'2024-01-19',hari:5,createdAt:'2024-01-19T10:30:00'},
+    {id:'r20',userId:'u3',lokasi:'Pasar Besar Pekalongan',kota:'Pekalongan Utara',jam:8,menit:0,status:'pickup',note:'',lat:-6.8820,lng:109.6800,tgl:'2024-01-20',hari:6,createdAt:'2024-01-20T08:00:00'},
+    {id:'r21',userId:'u4',lokasi:'Toko Mas Merdeka',kota:'Pekalongan Timur',jam:9,menit:30,status:'delivery',note:'',lat:-6.8870,lng:109.6770,tgl:'2024-01-20',hari:6,createdAt:'2024-01-20T09:30:00'},
+    {id:'r22',userId:'u2',lokasi:'Alfamart Bojong',kota:'Bojong',jam:14,menit:0,status:'done',note:'',lat:-7.0100,lng:109.6800,tgl:'2024-01-20',hari:6,createdAt:'2024-01-20T14:00:00'},
+  ]
 };
-const LS={L:'gjr_l5',H:'gjr_h5',N:'gjr_n5'};
-const TI={ride:'🛵',food:'🍱',send:'📦',shop:'🛍️'};
-const TN={ride:'Shop33Ride',food:'Shop33Food',send:'Shop33Send',shop:'Shop33Shop'};
-const TCOL={ride:'#42a5f5',food:'#ffa726',send:'#66bb6a',shop:'#ce93d8'};
-const DAY=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
 
-/* ============================================================
-   STORAGE
-============================================================ */
-function save(){localStorage.setItem(LS.L,JSON.stringify(S.locs));localStorage.setItem(LS.H,JSON.stringify(S.hist));localStorage.setItem(LS.N,S.nextId);}
-function load(){
-    const l=localStorage.getItem(LS.L),h=localStorage.getItem(LS.H),n=localStorage.getItem(LS.N);
-    S.locs=l?JSON.parse(l):JSON.parse(JSON.stringify(LOCS_DEF));
-    S.hist=h?JSON.parse(h):JSON.parse(JSON.stringify(DEMO_HIST)); 
-    S.nextId=n?+n:600;
-    if(!h)save();
-}
+let DB=JSON.parse(JSON.stringify(DEF));
+let CU=null;
+let map,layerStreet,layerSat,layerMode='street';
+let markers=[];
+let pendingDel=null;
+let isDark=false,sbOpen=false;
 
-/* ============================================================
-   HELPERS
-============================================================ */
-const p2=n=>String(n).padStart(2,'0');
-const getLoc=id=>S.locs.find(l=>l.id===id);
-function sortFn(a,b,f,d){
-    let va,vb;
-    if(f==='date'){va=`${a.date}${p2(a.hour)}${p2(a.minute||0)}`;vb=`${b.date}${p2(b.hour)}${p2(b.minute||0)}`;}
-    else if(f==='time'){va=a.hour*60+(a.minute||0);vb=b.hour*60+(b.minute||0);}
-    else if(f==='income'){va=a.income||0;vb=b.income||0;}
-    else{va=a[f]||'';vb=b[f]||'';}
-    return d==='asc'?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);
-}
-
-/* ============================================================
-   MAP INIT
-============================================================ */
-function initMap(){
-    S.map=L.map('map',{center:[-6.895,109.72],zoom:12});
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:19}).addTo(S.map);
-    S.map.on('click',e=>{
-        const la=e.latlng.lat.toFixed(6),lo=e.latlng.lng.toFixed(6);
-        if(document.getElementById('newLocWrap').style.display!=='none'){
-            setCoord(+la,+lo,'(dari klik peta)');
-        }
-        const t=document.getElementById('ctip');
-        t.textContent=`📍 ${la}, ${lo}`;
-        t.classList.add('show');
-        clearTimeout(t._t);
-        t._t=setTimeout(()=>t.classList.remove('show'),2500);
-    });
-}
-
-/* ============================================================
-   ===== SEARCH ALAMAT (NOMINATIM OSM) =====
-============================================================ */
-let _srchTimer=null;
-let _srchIdx=-1;
-let _srchItems=[];
-
-function onAddrInput(val){
-    const clear=document.getElementById('srchClear');
-    const icon=document.getElementById('srchIcon');
-    clear.style.display=val?'block':'none';
-    icon.style.display=val?'none':'block';
-
-    clearTimeout(_srchTimer);
-    if(val.trim().length<2){hideResults();return;}
-    _srchTimer=setTimeout(()=>searchAddr(val.trim()),500);
-}
-
-function onAddrKey(e){
-    const items=document.querySelectorAll('.sr-item');
-    if(e.key==='ArrowDown'){
-        e.preventDefault();
-        _srchIdx=Math.min(_srchIdx+1,items.length-1);
-        highlightSrch(items);
-    }else if(e.key==='ArrowUp'){
-        e.preventDefault();
-        _srchIdx=Math.max(_srchIdx-1,0);
-        highlightSrch(items);
-    }else if(e.key==='Enter'){
-        e.preventDefault();
-        if(_srchIdx>=0&&items[_srchIdx]){items[_srchIdx].click();}
-        else if(_srchItems.length>0){selectSrchResult(_srchItems[0]);}
-    }else if(e.key==='Escape'){
-        hideResults();
-    }
-}
-
-function highlightSrch(items){
-    items.forEach((it,i)=>it.classList.toggle('active',i===_srchIdx));
-    if(items[_srchIdx])items[_srchIdx].scrollIntoView({block:'nearest'});
-}
-
-async function searchAddr(q){
-    showLoad(true);
-    hideResults();
-    _srchIdx=-1;
-
-    // Tambah hint wilayah agar hasil lebih relevan
-    const query=q+', Pekalongan Batang Jawa Tengah Indonesia';
-    const url=`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&addressdetails=1&accept-language=id&countrycodes=id`;
-
-    try{
-        const res=await fetch(url,{headers:{'Accept-Language':'id'}});
-        const data=await res.json();
-        showLoad(false);
-        renderResults(data,q);
-    }catch(err){
-        showLoad(false);
-        showErrResult('Gagal terhubung ke server pencarian');
-    }
-}
-
-function showLoad(show){
-    document.getElementById('srchLoad').style.display=show?'flex':'none';
-    document.getElementById('srchIcon').style.display=show?'none':'block';
-}
-
-function renderResults(data,q){
-    const box=document.getElementById('srchResults');
-    _srchItems=data;
-
-    if(!data||!data.length){
-        box.innerHTML=`<div class="sr-empty">📭 Tidak ditemukan untuk "<b>${q}</b>"<br><span style="font-size:0.85em;color:#334">Coba kata kunci berbeda atau klik langsung di peta</span></div>`;
-        box.classList.add('show');
-        return;
-    }
-
-    box.innerHTML=data.map((item,i)=>{
-        const name=item.name||item.display_name.split(',')[0];
-        const addr=item.display_name;
-        const type=getPlaceIcon(item.type,item.class);
-        // Hitung jarak dari pusat Pekalongan
-        const dist=calcDist(-6.8886,109.6753,+item.lat,+item.lon);
-        return `<div class="sr-item" onclick="selectSrchResult(_srchItems[${i}])">
-            <span class="sr-ico">${type}</span>
-            <div>
-                <div class="sr-name">${name}</div>
-                <div class="sr-addr">${addr}</div>
-                <div class="sr-dist">📏 ~${dist} km dari pusat Pekalongan</div>
-            </div>
-        </div>`;
-    }).join('');
-
-    // Tips bawah
-    box.innerHTML+=`<div class="sr-tip">💡 <span>Gunakan ↑↓ untuk navigasi, Enter untuk pilih, Esc untuk tutup</span></div>`;
-    box.classList.add('show');
-}
-
-function showErrResult(msg){
-    const box=document.getElementById('srchResults');
-    box.innerHTML=`<div class="sr-empty" style="color:#ff6b35">⚠️ ${msg}</div>`;
-    box.classList.add('show');
-}
-
-function getPlaceIcon(type,cls){
-    const map={
-        hospital:'🏥',school:'🏫',university:'🎓',restaurant:'🍽️',
-        cafe:'☕',fuel:'⛽',supermarket:'🛒',marketplace:'🏪',
-        station:'🚉',bus_station:'🚌',terminal:'🚌',mosque:'🕌',
-        church:'⛪',park:'🌳',bank:'🏦',atm:'🏧',hotel:'🏨',
-        mall:'🏬',pharmacy:'💊',clinic:'🏥',police:'🚓',
-        stadium:'🏟️',beach:'🏖️',harbour:'⚓',airport:'✈️',
-        fast_food:'🍔',pharmacy:'💊',convenience:'🏪'
-    };
-    return map[type]||map[cls]||'📍';
-}
-
-function calcDist(lat1,lng1,lat2,lng2){
-    const R=6371;
-    const dLat=(lat2-lat1)*Math.PI/180;
-    const dLng=(lng2-lng1)*Math.PI/180;
-    const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
-    return (R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))).toFixed(1);
-}
-
-function selectSrchResult(item){
-    const lat=+item.lat, lng=+item.lon;
-    const name=item.name||item.display_name.split(',')[0];
-    const addr=item.display_name;
-
-    // Set koordinat
-    setCoord(lat,lng,addr);
-
-    // Auto-isi nama & area
-    document.getElementById('fNm').value=name;
-    const parts=item.display_name.split(',');
-    const area=parts.length>2?parts.slice(1,3).join(',').trim():'Custom';
-    document.getElementById('fArea').value=area;
-
-    // Update input search
-    document.getElementById('addrSearch').value=name;
-    document.getElementById('srchClear').style.display='block';
-    document.getElementById('srchIcon').style.display='none';
-
-    hideResults();
-
-    // Fly ke lokasi di peta
-    S.map.flyTo([lat,lng],16,{duration:1.2});
-    addSearchMarker(lat,lng,name);
-
-    toast(`📍 "${name}" dipilih — Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`,'success');
-}
-
-function setCoord(lat,lng,addr=''){
-    document.getElementById('fLat').value=lat.toFixed(6);
-    document.getElementById('fLng').value=lng.toFixed(6);
-    const disp=document.getElementById('coordDisplay');
-    disp.classList.add('show');
-    if(addr && addr!=='(dari klik peta)'){
-        document.getElementById('cdAddr').textContent='📍 '+addr.substring(0,120)+(addr.length>120?'…':'');
-    } else if(addr==='(dari klik peta)'){
-        document.getElementById('cdAddr').textContent='📍 Dipilih dari klik di peta';
-        // Reverse geocode
-        reverseGeocode(lat,lng);
-    }
-}
-
-async function reverseGeocode(lat,lng){
-    try{
-        const url=`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=id`;
-        const res=await fetch(url);
-        const data=await res.json();
-        if(data&&data.display_name){
-            document.getElementById('cdAddr').textContent='📍 '+data.display_name.substring(0,120);
-            // Auto-isi nama jika kosong
-            if(!document.getElementById('fNm').value){
-                const nm=data.name||data.display_name.split(',')[0];
-                document.getElementById('fNm').value=nm;
-            }
-            if(!document.getElementById('fArea').value){
-                const pts=data.display_name.split(',');
-                document.getElementById('fArea').value=pts.slice(1,3).join(',').trim();
-            }
-        }
-    }catch(e){}
-}
-
-function addSearchMarker(lat,lng,name){
-    if(S.searchMarker){try{S.map.removeLayer(S.searchMarker);}catch(_){}}
-    const ico=L.divIcon({
-        html:`<div class="search-marker-pulse"></div>`,
-        className:'',iconAnchor:[10,10]
-    });
-    S.searchMarker=L.marker([lat,lng],{icon:ico})
-        .addTo(S.map)
-        .bindPopup(`<b>📍 ${name}</b><br><span style="font-size:0.85em;color:#666">Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}</span>`)
-        .openPopup();
-}
-
-function clearAddrSearch(){
-    document.getElementById('addrSearch').value='';
-    document.getElementById('srchClear').style.display='none';
-    document.getElementById('srchIcon').style.display='block';
-    hideResults();
-    document.getElementById('coordDisplay').classList.remove('show');
-    document.getElementById('fLat').value='';
-    document.getElementById('fLng').value='';
-    document.getElementById('fNm').value='';
-    document.getElementById('fArea').value='';
-    if(S.searchMarker){try{S.map.removeLayer(S.searchMarker);}catch(_){}}
-    document.getElementById('addrSearch').focus();
-}
-
-function hideResults(){
-    document.getElementById('srchResults').classList.remove('show');
-    _srchIdx=-1;
-}
-
-// Tutup hasil pencarian saat klik di luar
-document.addEventListener('click',e=>{
-    if(!document.getElementById('searchWrap').contains(e.target)){
-        hideResults();
-    }
-});
-
-/* ============================================================
-   RENDER BUBBLES
-============================================================ */
-function renderBubbles(){
-    S.layers.forEach(l=>{try{S.map.removeLayer(l);}catch(_){}});
-    S.layers=[];
-    const cmap={},imap={};
-    S.hist.forEach(h=>{
-        if(S.fHours.length&&!S.fHours.includes(h.hour))return;
-        cmap[h.locId]=(cmap[h.locId]||0)+1;
-        imap[h.locId]=(imap[h.locId]||0)+(h.income||0);
-    });
-    let mapped=0;
-    S.locs.forEach(l=>{
-        if(!l.lat||!l.lng)return;
-        const cnt=cmap[l.id]||0,inc=imap[l.id]||0;
-        mapped+=cnt;
-        if(cnt===0){
-            const m=L.circleMarker([l.lat,l.lng],{radius:5,fillColor:'#2979ff',fillOpacity:0.4,color:'#2979ff',weight:1,opacity:0.55}).addTo(S.map);
-            m.bindTooltip(`<b>${l.name}</b><br><span style="color:#888">Belum ada data</span>`,{permanent:false,direction:'top'});
-            m.on('click',()=>openBp(l.id));
-            S.layers.push(m);
-            return;
-        }
-        let color,label;
-        if(cnt>10){color='#ff1744';label='Sangat Ramai';}
-        else if(cnt>5){color='#ff6d00';label='Ramai';}
-        else if(cnt>2){color='#ffd600';label='Sedang';}
-        else{color='#00e676';label='Sepi';}
-        const r=Math.min(12+cnt*3.2,62);
-        const halo=L.circleMarker([l.lat,l.lng],{radius:r+10,fillColor:'transparent',fillOpacity:0,color,weight:1.5,opacity:0.18,dashArray:'7 5'}).addTo(S.map);
-        const circle=L.circleMarker([l.lat,l.lng],{radius:r,fillColor:color,fillOpacity:0.35,color,weight:2.5,opacity:0.9}).addTo(S.map);
-        const dot=L.circleMarker([l.lat,l.lng],{radius:3,fillColor:color,fillOpacity:1,color:'#fff',weight:1}).addTo(S.map);
-        const lico=L.divIcon({html:`<div style="background:${color};color:${cnt>5?'#fff':'#000'};padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);pointer-events:none;">${cnt}</div>`,className:'',iconAnchor:[-4,r+14]});
-        const lm=L.marker([l.lat,l.lng],{icon:lico,interactive:false}).addTo(S.map);
-        const fs=S.fHours.length?`Jam: ${S.fHours.sort((a,b)=>a-b).map(h=>p2(h)+':00').join(', ')}`:'Semua jam';
-        circle.bindTooltip(`<b>${l.name}</b><br>${label} · ${cnt} order<br>Rp ${inc}rb · ${fs}`,{permanent:false,direction:'top',offset:[0,-r]});
-        const clk=()=>openBp(l.id);
-        circle.on('click',clk);halo.on('click',clk);dot.on('click',clk);
-        S.layers.push(halo,circle,dot,lm);
-    });
-    document.getElementById('mibF').textContent=S.fHours.length?`Filter: ${S.fHours.sort((a,b)=>a-b).map(h=>p2(h)+':00').join(', ')}`:'Semua Jam';
-    document.getElementById('mibC').textContent=`${mapped} order terpetakan`;
-    updateStats(cmap,imap);updateTop(cmap,imap);updateGlobalStats();updateDataInfo();
-}
-
-/* ============================================================
-   STATISTIK
-============================================================ */
-function updateStats(cmap,imap){
-    const tot=Object.values(cmap).reduce((a,b)=>a+b,0);
-    const inc=Object.values(imap).reduce((a,b)=>a+b,0);
-    let hot='–',maxC=0;
-    Object.entries(cmap).forEach(([id,c])=>{if(c>maxC){maxC=c;const l=getLoc(id);hot=l?l.name.split(' ').slice(0,2).join(' '):'–';}});
-    const hc={};S.hist.forEach(h=>{if(S.fHours.length&&!S.fHours.includes(h.hour))return;hc[h.hour]=(hc[h.hour]||0)+1;});
-    let pk='–',maxH=0;Object.entries(hc).forEach(([hr,c])=>{if(c>maxH){maxH=c;pk=p2(+hr)+':00';}});
-    document.getElementById('stTotal').textContent=tot;
-    document.getElementById('stIncome').textContent=inc.toLocaleString();
-    document.getElementById('stHot').textContent=hot;
-    document.getElementById('stPeak').textContent=pk;
-}
-
-function updateTop(cmap,imap){
-    const sorted=Object.entries(cmap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const ul=document.getElementById('topList');
-    ul.innerHTML='';
-    const med=['🥇','🥈','🥉','4️⃣','5️⃣'];
-    sorted.forEach(([id,cnt],i)=>{
-        const l=getLoc(id);if(!l)return;
-        const li=document.createElement('li');
-        li.className='titem';
-        li.innerHTML=`<span class="trnk">${med[i]}</span><span class="tname">${l.name}<div class="tsub">💰 Rp${(imap[id]||0).toLocaleString()}rb · ${l.area}</div></span><span class="tbdg">${cnt}</span>`;
-        li.onclick=()=>openBp(id);
-        ul.appendChild(li);
-    });
-    if(!sorted.length)ul.innerHTML='<li class="titem" style="color:#334;justify-content:center">Tidak ada data</li>';
-}
-
-function updateGlobalStats(){
-    const tot=S.hist.length,inc=S.hist.reduce((a,b)=>a+(b.income||0),0);
-    const avg=tot?Math.round(inc/tot):0,aktif=new Set(S.hist.map(h=>h.locId)).size;
-    document.getElementById('gTotal').textContent=tot;
-    document.getElementById('gInc').textContent=inc.toLocaleString();
-    document.getElementById('gAvg').textContent=avg;
-    document.getElementById('gLok').textContent=aktif;
-    renderTypeDist();renderTopHours();renderLast7();
-}
-
-function renderTypeDist(){
-    const tc={ride:0,food:0,send:0,shop:0};
-    S.hist.forEach(h=>{tc[h.type]=(tc[h.type]||0)+1;});
-    const tot=S.hist.length||1;
-    document.getElementById('typeDist').innerHTML=Object.entries(tc).map(([t,c])=>`
-        <div class="type-bar-row">
-            <div class="type-bar-lbl">${TI[t]} ${TN[t]}</div>
-            <div class="type-bar-track"><div class="type-bar-fill" style="width:${Math.round(c/tot*100)}%;background:${TCOL[t]}"></div></div>
-            <div class="type-bar-cnt">${c}</div>
-        </div>`).join('');
-}
-
-function renderTopHours(){
-    const hc={};S.hist.forEach(h=>{hc[h.hour]=(hc[h.hour]||0)+1;});
-    const sorted=Object.entries(hc).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const max=sorted[0]?sorted[0][1]:1;
-    document.getElementById('topHours').innerHTML=sorted.map(([hr,cnt])=>`
-        <div class="trend-row">
-            <span style="color:#ffd600;font-family:monospace;min-width:45px">${p2(+hr)}:00</span>
-            <div style="flex:1;margin:0 8px;background:#141428;border-radius:3px;height:6px;overflow:hidden">
-                <div style="width:${Math.round(cnt/max*100)}%;height:100%;background:#ff6b35;border-radius:3px"></div>
-            </div>
-            <span class="trend-val" style="color:#ff6b35">${cnt}</span>
-        </div>`).join('');
-}
-
-function renderLast7(){
-    const days={};
-    for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days[d.toISOString().split('T')[0]]=0;}
-    S.hist.forEach(h=>{if(days.hasOwnProperty(h.date))days[h.date]++;});
-    const entries=Object.entries(days);
-    const max=Math.max(...entries.map(e=>e[1]),1);
-    document.getElementById('last7days').innerHTML=`
-        <div style="display:flex;align-items:flex-end;gap:4px;height:50px;margin-bottom:4px;">
-            ${entries.map(([d,c])=>`
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
-                    <div style="width:100%;height:${Math.round(c/max*100)}%;min-height:${c?2:0}px;background:${c?'#00d4ff':'#1e1e35'};border-radius:2px 2px 0 0;"></div>
-                    <div style="font-size:0.45em;color:#334;margin-top:2px;">${DAY[new Date(d).getDay()]}</div>
-                </div>`).join('')}
-        </div>
-        <div style="font-size:0.62em;color:#334;text-align:center;">Total: ${Object.values(days).reduce((a,b)=>a+b,0)} order dalam 7 hari</div>`;
-}
-
-function updateDataInfo(){
-    document.getElementById('infoTotal').textContent=S.hist.length;
-    document.getElementById('infoLok').textContent=S.locs.length;
-    const latest=[...S.hist].sort((a,b)=>`${b.date}${p2(b.hour)}`.localeCompare(`${a.date}${p2(a.hour)}`))[0];
-    document.getElementById('infoLatest').textContent=latest?`${latest.date} ${p2(latest.hour)}:${p2(latest.minute||0)}`:'–';
-}
-
-/* ============================================================
-   FILTER JAM
-============================================================ */
-function buildHGrid(){
-    const g=document.getElementById('hgrid');g.innerHTML='';
-    const hw=new Set(S.hist.map(h=>h.hour));
-    for(let h=0;h<24;h++){
-        const b=document.createElement('button');
-        b.className='hbtn'+(hw.has(h)?' has':'');
-        b.id=`hb${h}`;b.textContent=p2(h);
-        b.title=`${p2(h)}:00${hw.has(h)?' (ada data)':''}`;
-        b.onclick=()=>togHour(h);
-        g.appendChild(b);
-    }
-}
-function refreshHGrid(){
-    const hw=new Set(S.hist.map(h=>h.hour));
-    for(let h=0;h<24;h++){const b=document.getElementById(`hb${h}`);if(b)b.className='hbtn'+(hw.has(h)?' has':'')+(S.fHours.includes(h)?' on':'');}
-}
-function togHour(h){const i=S.fHours.indexOf(h);i>=0?S.fHours.splice(i,1):S.fHours.push(h);refreshHGrid();updFL();}
-function updFL(){document.getElementById('fLabel').textContent=S.fHours.length?S.fHours.sort((a,b)=>a-b).map(h=>p2(h)+':00').join(', '):'Semua Jam';}
-function applyFilter(){renderBubbles();toast('✅ Filter diterapkan','success');}
-function addSldrHour(){const h=+document.getElementById('sldr').value;if(!S.fHours.includes(h))S.fHours.push(h);refreshHGrid();updFL();toast(`➕ Jam ${p2(h)}:00 ditambahkan`,'info');}
-function clearFilter(){S.fHours=[];document.getElementById('sldr').value=6;document.getElementById('sldrVal').textContent='06:00';refreshHGrid();updFL();renderBubbles();toast('🔄 Filter direset','info');}
-function onSldr(v){document.getElementById('sldrVal').textContent=p2(+v)+':00';}
-function selPeak(){const hc={};S.hist.forEach(h=>{hc[h.hour]=(hc[h.hour]||0)+1;});const vals=Object.values(hc);if(!vals.length){toast('⚠️ Belum ada data','warning');return;}const avg=vals.reduce((a,b)=>a+b,0)/vals.length;S.fHours=Object.entries(hc).filter(([,c])=>c>=avg).map(([hr])=>+hr);refreshHGrid();updFL();renderBubbles();toast(`🔥 ${S.fHours.length} jam puncak dipilih`,'warning');}
-function selAll(){S.fHours=[];refreshHGrid();updFL();renderBubbles();}
-function selNow(){const h=new Date().getHours();if(!S.fHours.includes(h))S.fHours.push(h);refreshHGrid();updFL();renderBubbles();toast(`📍 Jam ${p2(h)}:00 ditambahkan`,'info');}
-function selMorning(){[5,6,7,8,9].forEach(h=>{if(!S.fHours.includes(h))S.fHours.push(h);});refreshHGrid();updFL();renderBubbles();toast('🌅 Jam pagi 05–09 dipilih','info');}
-function selEvening(){[16,17,18,19].forEach(h=>{if(!S.fHours.includes(h))S.fHours.push(h);});refreshHGrid();updFL();renderBubbles();toast('🌆 Jam sore 16–19 dipilih','info');}
-function selNight(){[19,20,21,22].forEach(h=>{if(!S.fHours.includes(h))S.fHours.push(h);});refreshHGrid();updFL();renderBubbles();toast('🌙 Jam malam 19–22 dipilih','info');}
-
-/* ============================================================
-   SIDEBAR TABS
-============================================================ */
-function sbTab(idx,el){
-    document.querySelectorAll('#sbTabs .tab').forEach(b=>b.classList.remove('active'));
-    el.classList.add('active');
-    for(let i=0;i<4;i++)document.getElementById(`tc${i}`).classList.remove('show');
-    document.getElementById(`tc${idx}`).classList.add('show');
-    if(idx===2)updateGlobalStats();
-    if(idx===3){renderHistList();updateDataInfo();}
-}
-
-/* ============================================================
-   DROPDOWN LOKASI
-============================================================ */
-function buildLocDrop(){
-    const sel=document.getElementById('fLoc');
-    sel.innerHTML='<option value="">— Pilih Lokasi —</option>';
-    const areas={};
-    S.locs.forEach(l=>{if(!areas[l.area])areas[l.area]=[];areas[l.area].push(l);});
-    Object.entries(areas).forEach(([a,ls])=>{
-        const og=document.createElement('optgroup');og.label='📍 '+a;
-        ls.forEach(l=>{const o=document.createElement('option');o.value=l.id;o.textContent=l.name;og.appendChild(o);});
-        sel.appendChild(og);
-    });
-    const o=document.createElement('option');o.value='NEW';o.textContent='➕ Tambah Lokasi Baru...';
-    sel.appendChild(o);
-}
-function onLocChg(){
-    const isNew=document.getElementById('fLoc').value==='NEW';
-    document.getElementById('newLocWrap').style.display=isNew?'block':'none';
-    if(!isNew){
-        clearAddrSearch();
-        if(S.searchMarker){try{S.map.removeLayer(S.searchMarker);}catch(_){}}
-    }
-}
-
-/* ============================================================
-   TAMBAH HISTORIS
-============================================================ */
-function addHist(){
-    const lid=document.getElementById('fLoc').value;
-    const h=+document.getElementById('fH').value;
-    const m=+document.getElementById('fM').value||0;
-    const inc=+document.getElementById('fInc').value;
-    const typ=document.getElementById('fTyp').value;
-    const dt=document.getElementById('fDt').value;
-    const note=document.getElementById('fNote').value.trim();
-
-    if(!lid)                     return toast('⚠️ Pilih lokasi dahulu','error');
-    if(isNaN(h)||h<0||h>23)     return toast('⚠️ Jam tidak valid (0-23)','error');
-    if(isNaN(m)||m<0||m>59)     return toast('⚠️ Menit tidak valid (0-59)','error');
-    if(isNaN(inc)||inc<0)       return toast('⚠️ Omset tidak valid','error');
-    if(!dt)                      return toast('⚠️ Tanggal harus diisi','error');
-
-    let finalId=lid;
-    if(lid==='NEW'){
-        const nm=document.getElementById('fNm').value.trim();
-        const la=+document.getElementById('fLat').value;
-        const lo=+document.getElementById('fLng').value;
-        const ar=document.getElementById('fArea').value.trim()||'Custom';
-        if(!nm)           return toast('⚠️ Nama lokasi harus diisi','error');
-        if(isNaN(la)||isNaN(lo)||la===0) return toast('⚠️ Cari alamat atau klik peta untuk mendapatkan koordinat','error');
-        finalId='cus_'+Date.now();
-        S.locs.push({id:finalId,name:nm,lat:la,lng:lo,area:ar});
-        buildLocDrop();
-        clearAddrSearch();
-        document.getElementById('fNm').value='';
-        document.getElementById('fArea').value='';
-        document.getElementById('coordDisplay').classList.remove('show');
-        document.getElementById('newLocWrap').style.display='none';
-        if(S.searchMarker){try{S.map.removeLayer(S.searchMarker);}catch(_){}}
-        toast(`📍 Lokasi "${nm}" ditambahkan`,'success');
-    }
-
-    S.hist.push({id:S.nextId++,locId:finalId,hour:h,minute:m,income:inc,type:typ,date:dt,note});
-    save();renderBubbles();renderHistList();refreshHGrid();
-    ['fH','fM','fInc','fNote'].forEach(id=>document.getElementById(id).value='');
-    toast(`✅ Tersimpan: ${p2(h)}:${p2(m)} — Rp${inc}rb`,'success');
-}
-
-/* ============================================================
-   RIWAYAT
-============================================================ */
-function renderHistList(){
-    const list=document.getElementById('histList');
-    const rec=[...S.hist].reverse().slice(0,20);
-    list.innerHTML='';
-    if(!rec.length){list.innerHTML='<div style="color:#334;text-align:center;padding:14px;font-size:0.75em">📭 Belum ada data</div>';return;}
-    rec.forEach(h=>{
-        const l=getLoc(h.locId);
-        const div=document.createElement('div');
-        div.className=`hrow ${h.type||''}`;
-        div.innerHTML=`
-            <div class="hri">
-                <div class="hrloc">${TI[h.type]||'📋'} ${l?l.name:'?'}</div>
-                <div class="hrmeta">📅 ${h.date} · 🕐 ${p2(h.hour)}:${p2(h.minute||0)} · ${TN[h.type]||h.type}</div>
-            </div>
-            <div class="hrinc">Rp${h.income}rb</div>
-            <button class="hrdel" onclick="event.stopPropagation();delHist(${h.id})">🗑</button>`;
-        div.onclick=()=>{if(l)openBp(l.id);};
-        list.appendChild(div);
-    });
-}
-function delHist(id){
-    S.hist=S.hist.filter(h=>h.id!==id);
-    save();renderBubbles();renderHistList();refreshHGrid();
-    if(S.bp.locId)refreshBpStats();
-    toast('🗑️ Data dihapus','info');
-}
-
-/* ============================================================
-   EXPORT / IMPORT
-============================================================ */
-function exportData(){
-    const d={app:'Shop33 Radar',exportDate:new Date().toISOString(),version:'5.0',totalHistory:S.hist.length,locations:S.locs,history:S.hist};
-    const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
-    const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`gjr_${new Date().toISOString().split('T')[0]}.json`;a.click();URL.revokeObjectURL(u);
-    toast(`📤 Export ${S.hist.length} data berhasil`,'success');
-}
-function exportCSV(){
-    const hdr='id,tanggal,jam,menit,lokasi,area,lat,lng,tipe,omset,catatan';
-    const rows=S.hist.map(h=>{const l=getLoc(h.locId);return `${h.id},${h.date},${h.hour},${h.minute||0},"${l?l.name:'?'}","${l?l.area:'?'}",${l?l.lat:''},${l?l.lng:''},${h.type},${h.income},"${(h.note||'').replace(/"/g,"'")}"`;});
-    const b=new Blob([[hdr,...rows].join('\n')],{type:'text/csv'});
-    const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`gjr_${new Date().toISOString().split('T')[0]}.csv`;a.click();URL.revokeObjectURL(u);
-    toast(`📊 CSV ${S.hist.length} baris berhasil`,'success');
-}
-function importJSON(inp){
-    const file=inp.files[0];if(!file)return;
-    const rd=new FileReader();
-    rd.onload=e=>{
-        try{
-            const d=JSON.parse(e.target.result);let ah=0,al=0;
-            if(d.history&&Array.isArray(d.history)){const ex=new Set(S.hist.map(h=>h.id));d.history.forEach(h=>{if(!ex.has(h.id)){S.hist.push({...h,id:S.nextId++});ah++;}});}
-            if(d.locations&&Array.isArray(d.locations)){const exl=new Set(S.locs.map(l=>l.id));d.locations.filter(l=>l.id.startsWith('cus_')).forEach(l=>{if(!exl.has(l.id)){S.locs.push(l);al++;}});}
-            save();buildLocDrop();renderBubbles();renderHistList();refreshHGrid();
-            toast(`📥 Import: +${ah} historis, +${al} lokasi`,'success');
-        }catch(err){toast('⚠️ File JSON tidak valid','error');}
-    };
-    rd.readAsText(file);inp.value='';
-}
-
-/* ============================================================
-   MODAL
-============================================================ */
-let _mT=null;
-function showModal(mode){
-    _mT=mode;
-    document.getElementById('modIco').textContent=mode==='cache'?'🗑️':'💥';
-    document.getElementById('modTit').textContent=mode==='cache'?'Hapus Data Cache':'Hapus SEMUA Data';
-    document.getElementById('modTxt').innerHTML=mode==='cache'?'Hapus <b>data demo/bawaan</b> (id &lt; 600). Data input manual tetap aman.':'Hapus <b>SELURUH</b> historis dan lokasi custom? Tidak bisa dibatalkan!';
-    document.getElementById('modBg').classList.add('show');
-}
-function closeModal(){document.getElementById('modBg').classList.remove('show');_mT=null;}
-function doModal(){
-    if(_mT==='cache'){S.hist=S.hist.filter(h=>h.id>=600);save();toast('🧹 Cache/demo dihapus','success');}
-    else if(_mT==='all'){S.hist=[];S.locs=JSON.parse(JSON.stringify(LOCS_DEF));S.nextId=600;localStorage.clear();buildLocDrop();if(S.bp.locId)closeBp();toast('💥 Semua data dihapus','error');}
-    closeModal();renderBubbles();renderHistList();buildHGrid();
-}
-
-/* ============================================================
-   BUBBLE POPUP
-============================================================ */
-function openBp(locId){
-    const l=getLoc(locId);if(!l)return;
-    S.bp.locId=locId;S.bp.sortF='date';S.bp.sortD='desc';S.bp.hrF='';S.bp.tab=0;
-    document.getElementById('bpName').textContent='📍 '+l.name;
-    document.getElementById('bpArea').textContent=l.area;
-    document.getElementById('bpCoord').textContent=`${l.lat.toFixed(5)}, ${l.lng.toFixed(5)}`;
-    refreshBpStats();
-    document.getElementById('bpFTyp').value='';
-    document.getElementById('bpFHr').value='';
-    document.getElementById('bpSrch').value='';
-    bpTab(0,document.getElementById('bpT0'));
-    document.getElementById('bpbg').classList.add('show');
-}
-function closeBp(){document.getElementById('bpbg').classList.remove('show');S.bp.locId=null;}
-
-function refreshBpStats(){
-    const all=S.hist.filter(h=>h.locId===S.bp.locId);
-    const tot=all.length,inc=all.reduce((a,b)=>a+(b.income||0),0),avg=tot?Math.round(inc/tot):0;
-    const dc={};all.forEach(h=>{dc[h.date]=(dc[h.date]||0)+1;});
-    const maxD=Math.max(...Object.values(dc),0);
-    const hc={};all.forEach(h=>{hc[h.hour]=(hc[h.hour]||0)+1;});
-    let pk='–',mx=0;Object.entries(hc).forEach(([hr,c])=>{if(c>mx){mx=c;pk=p2(+hr)+':00';}});
-    document.getElementById('bpStT').textContent=tot;
-    document.getElementById('bpStI').textContent=inc.toLocaleString();
-    document.getElementById('bpStA').textContent=avg.toLocaleString();
-    document.getElementById('bpStP').textContent=pk;
-    document.getElementById('bpStM').textContent=maxD;
-    const pill=document.getElementById('bpPill');
-    const cfg=tot>10?['#ff1744','Sangat Ramai']:tot>5?['#ff6d00','Ramai']:tot>2?['#ffd600','Sedang']:tot>0?['#00e676','Sepi']:['#2979ff','Belum Ada Data'];
-    pill.style.cssText=`background:${cfg[0]}22;color:${cfg[0]};border:1px solid ${cfg[0]}44;`;
-    pill.textContent='● '+cfg[1];
-    renderBpChart(all);buildBpHrSel(all);renderBpTbl();
-    if(S.bp.tab===1)renderBpGrafik(all);
-    if(S.bp.tab===2)renderBpAnalitik(all);
-}
-
-function bpTab(idx,el){
-    ['bpT0','bpT1','bpT2'].forEach(id=>document.getElementById(id).classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('bpTab0').style.display=idx===0?'flex':'none';
-    document.getElementById('bpTab1').style.display=idx===1?'block':'none';
-    document.getElementById('bpTab2').style.display=idx===2?'block':'none';
-    S.bp.tab=idx;
-    const all=S.hist.filter(h=>h.locId===S.bp.locId);
-    if(idx===1)renderBpGrafik(all);
-    if(idx===2)renderBpAnalitik(all);
-}
-
-function renderBpChart(data){
-    const bars=document.getElementById('bpBars');bars.innerHTML='';
-    const hc={},hi={};for(let h=0;h<24;h++){hc[h]=0;hi[h]=0;}
-    data.forEach(d=>{hc[d.hour]++;hi[d.hour]+=(d.income||0);});
-    const mx=Math.max(...Object.values(hc),1);
-    for(let h=0;h<24;h++){
-        const cnt=hc[h],inc=hi[h],pct=Math.round(cnt/mx*100);
-        let bc='#1a1a30';
-        if(cnt>0){if(pct>=80)bc='#ff1744';else if(pct>=50)bc='#ff6d00';else if(pct>=20)bc='#ffd600';else bc='#00e676';}
-        const w=document.createElement('div');w.className='hbw';w.id=`bb${h}`;
-        w.innerHTML=`<div class="htip">${p2(h)}:xx · ${cnt} order · Rp${inc}rb</div>
-            <div style="flex:1;display:flex;align-items:flex-end;width:100%">
-                <div class="hbar" style="height:${Math.max(pct,2)}%;background:${bc};width:100%"></div>
-            </div><div class="hblbl">${h}</div>`;
-        w.onclick=()=>{if(cnt>0)clickBpBar(h);};
-        if(!cnt)w.style.cursor='default';
-        bars.appendChild(w);
-    }
-    updBpBars();
-}
-function clickBpBar(h){S.bp.hrF=S.bp.hrF===h.toString()?'':h.toString();document.getElementById('bpFHr').value=S.bp.hrF;updBpBars();renderBpTbl();}
-function updBpBars(){for(let h=0;h<24;h++){const w=document.getElementById(`bb${h}`);if(!w)continue;if(S.bp.hrF===''){w.classList.remove('sel','dim');}else{w.classList.toggle('sel',S.bp.hrF===h.toString());w.classList.toggle('dim',S.bp.hrF!==h.toString());}}}
-function buildBpHrSel(data){const hrs=[...new Set(data.map(d=>d.hour))].sort((a,b)=>a-b);const sel=document.getElementById('bpFHr');sel.innerHTML='<option value="">Semua Jam</option>';hrs.forEach(h=>{const c=data.filter(d=>d.hour===h).length;sel.innerHTML+=`<option value="${h}">${p2(h)}:00 (${c})</option>`;});}
-function onBpHrSel(){S.bp.hrF=document.getElementById('bpFHr').value;updBpBars();renderBpTbl();}
-function resetBpHr(){S.bp.hrF='';document.getElementById('bpFHr').value='';updBpBars();renderBpTbl();}
-
-function renderBpTbl(){
-    if(!S.bp.locId)return;
-    let data=S.hist.filter(h=>h.locId===S.bp.locId);
-    const ft=document.getElementById('bpFTyp').value;
-    if(ft)data=data.filter(d=>d.type===ft);
-    if(S.bp.hrF!=='')data=data.filter(d=>d.hour===+S.bp.hrF);
-    const q=document.getElementById('bpSrch').value.toLowerCase().trim();
-    if(q)data=data.filter(d=>(d.note||'').toLowerCase().includes(q)||d.date.includes(q));
-    data.sort((a,b)=>sortFn(a,b,S.bp.sortF,S.bp.sortD));
-    ['date','time','type','income'].forEach(f=>{const el=document.getElementById('sa_'+f);if(el)el.textContent=f===S.bp.sortF?(S.bp.sortD==='asc'?'↑':'↓'):'↕';});
-    const totInc=data.reduce((a,b)=>a+(b.income||0),0);
-    document.getElementById('bpRInfo').textContent=`${data.length} data`;
-    document.getElementById('bpRInc').textContent=`Rp ${totInc.toLocaleString()}rb`;
-    const tbody=document.getElementById('bpTbody'),nd=document.getElementById('bpND');
-    if(!data.length){tbody.innerHTML='';nd.style.display='block';return;}
-    nd.style.display='none';
-    tbody.innerHTML=data.map(d=>`
-        <tr>
-            <td class="tcdate">${d.date}</td>
-            <td class="tctime">${p2(d.hour)}:${p2(d.minute||0)}</td>
-            <td><span class="tbdg ${d.type||'ride'}">${TI[d.type]||'📋'} ${TN[d.type]||d.type}</span></td>
-            <td class="tcinc">Rp ${(d.income||0).toLocaleString()}rb</td>
-            <td class="tcnote" title="${d.note||''}">${d.note?d.note.substring(0,30)+(d.note.length>30?'…':''):'<span style="color:#222">—</span>'}</td>
-            <td><button class="tcdel" onclick="bpDel(${d.id})">🗑️</button></td>
-        </tr>`).join('');
-}
-function bpSort(f){S.bp.sortF===f?S.bp.sortD=S.bp.sortD==='asc'?'desc':'asc':(S.bp.sortF=f,S.bp.sortD='desc');renderBpTbl();}
-function bpDel(id){
-    if(!confirm('Hapus data ini?'))return;
-    S.hist=S.hist.filter(h=>h.id!==id);
-    save();renderBubbles();renderHistList();refreshHGrid();refreshBpStats();
-    toast('🗑️ Data dihapus','info');
-}
-
-function renderBpGrafik(data){
-    const hc={},hi={},hm={};for(let h=0;h<24;h++){hc[h]=0;hi[h]=0;hm[h]=[];}
-    data.forEach(d=>{hc[d.hour]++;hi[d.hour]+=(d.income||0);hm[d.hour].push(d.minute||0);});
-    const maxC=Math.max(...Object.values(hc),1);
-    document.getElementById('bpHrDet').innerHTML=Array.from({length:24},(_,h)=>{
-        const cnt=hc[h],inc=hi[h],pct=Math.round(cnt/maxC*100);
-        let bc='#1e1e35';if(cnt>0){if(pct>=80)bc='#ff1744';else if(pct>=50)bc='#ff6d00';else if(pct>=20)bc='#ffd600';else bc='#00e676';}
-        const avgM=hm[h].length?Math.round(hm[h].reduce((a,b)=>a+b,0)/hm[h].length):0;
-        return `<div class="trend-row">
-            <span style="color:#ffd600;font-family:monospace;min-width:45px">${p2(h)}:00</span>
-            <div style="flex:1;margin:0 8px;background:#141428;border-radius:3px;height:10px;overflow:hidden">
-                <div style="width:${pct}%;height:100%;background:${bc};border-radius:3px"></div>
-            </div>
-            <span style="color:#556;font-size:0.75em;min-width:80px;text-align:right">${cnt?cnt+' order · Rp'+inc+'rb':'-'}</span>
-        </div>`;
-    }).join('');
-    const dc={};data.forEach(d=>{dc[d.date]=(dc[d.date]||0)+1;});
-    const dayE=Object.entries(dc).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14);
-    const maxD=Math.max(...dayE.map(e=>e[1]),1);
-    document.getElementById('bpDayDet').innerHTML=dayE.map(([dt,cnt])=>`
-        <div class="trend-row">
-            <span style="color:#aaa;min-width:90px;font-size:0.88em">${dt}</span>
-            <span style="color:#445;min-width:28px;font-size:0.75em">${DAY[new Date(dt).getDay()]}</span>
-            <div style="flex:1;margin:0 8px;background:#141428;border-radius:3px;height:8px;overflow:hidden">
-                <div style="width:${Math.round(cnt/maxD*100)}%;height:100%;background:#00d4ff;border-radius:3px"></div>
-            </div>
-            <span class="trend-val" style="color:#00d4ff;min-width:55px;text-align:right">${cnt} order</span>
-        </div>`).join('')||'<div style="color:#334;font-size:0.78em;text-align:center;padding:10px">Belum ada data</div>';
-}
-
-function renderBpAnalitik(data){
-    const tc={ride:0,food:0,send:0,shop:0};data.forEach(h=>{tc[h.type]=(tc[h.type]||0)+1;});
-    const tot=data.length||1;
-    document.getElementById('bpTypDist').innerHTML=Object.entries(tc).map(([t,c])=>`
-        <div class="type-bar-row">
-            <div class="type-bar-lbl">${TI[t]} ${TN[t]}</div>
-            <div class="type-bar-track"><div class="type-bar-fill" style="width:${Math.round(c/tot*100)}%;background:${TCOL[t]}"></div></div>
-            <div class="type-bar-cnt">${c}</div>
-        </div>`).join('');
-    const last10=[...data].sort((a,b)=>sortFn(a,b,'date','desc')).slice(0,10).reverse();
-    const maxI=Math.max(...last10.map(d=>d.income||0),1);
-    document.getElementById('bpIncH').innerHTML=last10.map(d=>`
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;cursor:default" title="${d.date} ${p2(d.hour)}:${p2(d.minute||0)} — Rp${d.income}rb">
-            <div style="flex:1;display:flex;align-items:flex-end;width:100%">
-                <div style="width:100%;height:${Math.round((d.income||0)/maxI*100)}%;background:${TCOL[d.type]||'#00d4ff'};border-radius:2px 2px 0 0;min-height:2px"></div>
-            </div>
-            <div style="font-size:0.38em;color:#334;margin-top:2px">${p2(d.hour)}</div>
-        </div>`).join('')||'<div style="color:#334;font-size:0.75em">Belum ada data</div>';
-    const incs=data.map(d=>d.income||0).filter(v=>v>0);
-    const maxInc=incs.length?Math.max(...incs):0,minInc=incs.length?Math.min(...incs):0,totInc=incs.reduce((a,b)=>a+b,0);
-    const aktifDays=new Set(data.map(d=>d.date)).size;
-    document.getElementById('bpPerf').innerHTML=`
-        <div class="trend-row"><span>💰 Omset Tertinggi</span><span class="trend-val" style="color:#00ff88">Rp ${maxInc}rb</span></div>
-        <div class="trend-row"><span>💸 Omset Terendah</span><span class="trend-val" style="color:#ff6b35">Rp ${minInc}rb</span></div>
-        <div class="trend-row"><span>📊 Total Omset</span><span class="trend-val" style="color:#00d4ff">Rp ${totInc.toLocaleString()}rb</span></div>
-        <div class="trend-row"><span>📅 Hari Operasional</span><span class="trend-val" style="color:#ffd600">${aktifDays} hari</span></div>
-        <div class="trend-row"><span>📈 Rata-rata/hari</span><span class="trend-val" style="color:#00d4ff">Rp ${aktifDays?Math.round(totInc/aktifDays):0}rb</span></div>`;
-    const dc={};data.forEach(d=>{if(!dc[d.date])dc[d.date]={cnt:0,inc:0};dc[d.date].cnt++;dc[d.date].inc+=(d.income||0);});
-    const bestD=Object.entries(dc).sort((a,b)=>b[1].cnt-a[1].cnt).slice(0,5);
-    document.getElementById('bpBestD').innerHTML=bestD.map(([dt,v])=>`
-        <div class="trend-row">
-            <span style="color:#aaa;font-size:0.88em">${dt} <span style="color:#445">${DAY[new Date(dt).getDay()]}</span></span>
-            <span class="trend-val" style="color:#ffd600">${v.cnt} order</span>
-            <span style="color:#00ff88;margin-left:8px;font-size:0.85em">Rp${v.inc}rb</span>
-        </div>`).join('')||'<div style="color:#334;font-size:0.75em;text-align:center;padding:10px">Belum ada data</div>';
-}
-
-/* ============================================================
-   CLOCK & TOAST
-============================================================ */
-function startClock(){setInterval(()=>{const n=new Date();document.getElementById('clock').textContent=`${p2(n.getHours())}:${p2(n.getMinutes())}:${p2(n.getSeconds())}`;},1000);}
-let _tt=null;
-function toast(msg,type='info'){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} show`;clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),3200);}
+/* FILTER STATE */
+let FS={hari:null,jam:null,jamPreset:null,density:'all'};
 
 /* ============================================================
    INIT
 ============================================================ */
-window.addEventListener('load',()=>{
-    load();initMap();buildHGrid();buildLocDrop();
-    renderBubbles();renderHistList();startClock();
-    document.getElementById('fDt').value=new Date().toISOString().split('T')[0];
-    document.getElementById('fM').value='0';
-    setTimeout(()=>S.map.fitBounds([[-7.18,109.50],[-6.76,110.00]]),400);
-    document.getElementById('bpbg').addEventListener('click',e=>{if(e.target===document.getElementById('bpbg'))closeBp();});
-    document.getElementById('modBg').addEventListener('click',e=>{if(e.target===document.getElementById('modBg'))closeModal();});
-    toast('🛵 Ayo siap! Klik bubble untuk historis, cari alamat untuk lokasi baru.','success');
+window.addEventListener('DOMContentLoaded',function(){
+  loadDB();
+  initMap();
+  initSelects();
+  applyThemeStorage();
+  const s=document.createElement('style');
+  s.textContent=`@keyframes bpulse{0%{transform:scale(1);opacity:.5}70%{transform:scale(2.1);opacity:0}100%{transform:scale(2.1);opacity:0}}`;
+  document.head.appendChild(s);
+  renderMarkersPublic();
 });
+
+function loadDB(){try{const s=localStorage.getItem('sdt_v6');if(s)DB=JSON.parse(s);}catch(e){}}
+function saveDB(){localStorage.setItem('sdt_v6',JSON.stringify(DB));}
+
+/* ============================================================
+   MAP
+============================================================ */
+function initMap(){
+  map=L.map('map',{zoomControl:true,center:[-6.9007,109.7040],zoom:11});
+  layerStreet=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
+  layerSat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19});
+  map.on('click',function(e){
+    if(!CU)return;
+    document.getElementById('rLat').value=e.latlng.lat.toFixed(6);
+    document.getElementById('rLng').value=e.latlng.lng.toFixed(6);
+    toast('📍 Koordinat dipilih!','s');
+  });
+  [100,500,1000].forEach(t=>setTimeout(()=>map.invalidateSize(),t));
+}
+function toggleLayer(){
+  if(layerMode==='street'){map.removeLayer(layerStreet);layerSat.addTo(map);layerMode='satellite';document.getElementById('layerLbl').textContent='Street';}
+  else{map.removeLayer(layerSat);layerStreet.addTo(map);layerMode='street';document.getElementById('layerLbl').textContent='Satelit';}
+}
+function resetView(){map.flyTo([-6.9007,109.7040],11,{duration:1.2});}
+
+/* ============================================================
+   SELECTS INIT
+============================================================ */
+function initSelects(){
+  ['rJam','eJam'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML='<option value="">Pilih Jam</option>';
+    for(let i=1;i<=24;i++)el.innerHTML+=`<option value="${i}">${p2(i)}:00</option>`;
+  });
+  ['rMenit','eMenit'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML='';
+    for(let i=0;i<60;i++)el.innerHTML+=`<option value="${i}">${p2(i)}</option>`;
+  });
+  // Build jam dropdown options
+  const fdJam=document.getElementById('fdJam');
+  const specific=fdJam.querySelector('optgroup:last-child');
+  for(let i=1;i<=24;i++){
+    const op=document.createElement('option');
+    op.value=String(i);
+    op.textContent=`🕐 Jam ${p2(i)}:00`;
+    specific.appendChild(op);
+  }
+}
+
+/* ============================================================
+   FILTER CHANGE HANDLER
+============================================================ */
+function onFilterChange(){
+  const hari=document.getElementById('fdHari').value;
+  const jam=document.getElementById('fdJam').value;
+  const density=document.getElementById('fdDensity').value;
+
+  // Parse hari
+  FS.hari=hari===''?null:parseInt(hari);
+
+  // Parse jam
+  if(jam===''){FS.jam=null;FS.jamPreset=null;}
+  else if(jam.startsWith('preset_')){FS.jamPreset=jam.replace('preset_','');FS.jam=null;}
+  else{FS.jam=parseInt(jam);FS.jamPreset=null;}
+
+  FS.density=density;
+
+  // Update select styling
+  document.getElementById('fdHari').classList.toggle('has-val',hari!=='');
+  document.getElementById('fdJam').classList.toggle('has-val',jam!=='');
+  document.getElementById('fdDensity').classList.toggle('has-val',density!=='all');
+
+  applyFilters();
+}
+
+/* ============================================================
+   APPLY FILTERS
+============================================================ */
+function applyFilters(){
+  renderMarkers();
+  renderDashboard();
+  updateFilterBadge();
+  updateSelCard();
+  renderRekomendasi();
+  // Reset button
+  const hasF=FS.hari!==null||FS.jam!==null||FS.jamPreset!==null||FS.density!=='all';
+  document.getElementById('fpReset').classList.toggle('act',hasF);
+  if(document.getElementById('tab-hist').classList.contains('on'))renderHist();
+  if(CU&&CU.role==='admin'&&document.getElementById('tab-users').classList.contains('on'))renderAdminHist();
+}
+
+function clearFilters(){
+  FS={hari:null,jam:null,jamPreset:null,density:'all'};
+  document.getElementById('fdHari').value='';
+  document.getElementById('fdJam').value='';
+  document.getElementById('fdDensity').value='all';
+  ['fdHari','fdJam','fdDensity'].forEach(id=>document.getElementById(id).classList.remove('has-val'));
+  applyFilters();
+  toast('Filter direset ✨','i');
+}
+
+/* ============================================================
+   UPDATE SELECTED CARD
+============================================================ */
+function updateSelCard(){
+  const card=document.getElementById('selCard');
+  const hasFilter=FS.hari!==null||FS.jam!==null||FS.jamPreset!==null;
+  if(!hasFilter){card.classList.remove('show');return;}
+
+  const recs=getFilteredRecs();
+  const amap={};recs.forEach(r=>{if(r.kota)amap[r.kota]=(amap[r.kota]||0)+1;});
+  const sorted=Object.entries(amap).sort((a,b)=>b[1]-a[1]);
+  const maxA=sorted[0]?sorted[0][1]:1;
+  const totalOrder=recs.length;
+  const areaCount=sorted.length;
+  const driverSet=new Set(recs.map(r=>r.userId));
+
+  // Compute overall level
+  const topCnt=sorted[0]?sorted[0][1]:0;
+  const lv=topCnt>0?getLevel(topCnt,maxA):'none';
+  const col=lv!=='none'?lvColor(lv):'#888';
+
+  // Build label
+  let mainLabel='';
+  let subLabel='';
+  let icon='📊';
+  if(FS.jam!==null){icon='🕐';mainLabel=`Jam ${p2(FS.jam)}:00`;}
+  else if(FS.jamPreset){
+    const r=JAM_PRESETS[FS.jamPreset];
+    const nl={pagi:'🌅 Pagi',siang:'☀️ Siang',sore:'🌆 Sore',malam:'🌙 Malam'};
+    icon=nl[FS.jamPreset].split(' ')[0];
+    mainLabel=`${nl[FS.jamPreset]} (${p2(r[0])}–${p2(r[1])})`;
+  }
+  if(FS.hari!==null)subLabel=HARI_NAMES[FS.hari];
+  if(!mainLabel&&FS.hari!==null){icon='📅';mainLabel=HARI_NAMES[FS.hari];subLabel='';}
+
+  card.style.background=`linear-gradient(135deg,${col},${col}cc)`;
+  card.classList.add('show');
+  document.getElementById('scIcon').textContent=icon;
+  document.getElementById('scMain').textContent=mainLabel||'Filter Aktif';
+  document.getElementById('scSub').textContent=subLabel;
+  document.getElementById('scLv').textContent=totalOrder>0?lvLabel(lv):'Tidak ada order';
+  document.getElementById('scTotal').textContent=totalOrder;
+  document.getElementById('scArea').textContent=areaCount;
+  document.getElementById('scDriver').textContent=driverSet.size;
+
+  const tips={
+    sgt:`<i class="fas fa-fire"></i> SANGAT RAMAI! Segera mangkal di area teratas!`,
+    ramai:`<i class="fas fa-thumbs-up"></i> Ramai order. Waktu bagus untuk mangkal di area populer.`,
+    sedang:`<i class="fas fa-info-circle"></i> Order sedang. Pilih area dengan persaingan lebih kecil.`,
+    sepi:`<i class="fas fa-moon"></i> Order sepi. Pertimbangkan pindah ke jam/area lain.`,
+    none:`<i class="fas fa-question-circle"></i> Belum ada histori. Rekam lebih banyak perjalanan untuk analisis akurat.`
+  };
+  document.getElementById('scTip').innerHTML=tips[lv]||tips.none;
+}
+
+/* ============================================================
+   FILTER BADGE & REKOMENDASI
+============================================================ */
+function updateFilterBadge(){
+  const afbar=document.getElementById('afbar');
+  const aftags=document.getElementById('aftags');
+  const mfb=document.getElementById('mfbadge');
+  const mft=document.getElementById('mftext');
+  const parts=[];
+  if(FS.hari!==null)parts.push(`<span class="aftag">📅 ${HARI_NAMES[FS.hari]}</span>`);
+  if(FS.jam!==null)parts.push(`<span class="aftag">🕐 Jam ${p2(FS.jam)}:00</span>`);
+  if(FS.jamPreset){const nl={pagi:'🌅 Pagi',siang:'☀️ Siang',sore:'🌆 Sore',malam:'🌙 Malam'};parts.push(`<span class="aftag">${nl[FS.jamPreset]}</span>`);}
+  if(FS.density!=='all'){const nl={sgt:'🔥 Sgt Ramai',ramai:'🔴 Ramai',sedang:'🟡 Sedang',sepi:'🟢 Sepi'};parts.push(`<span class="aftag">${nl[FS.density]}</span>`);}
+  if(parts.length>0){
+    afbar.classList.add('show');aftags.innerHTML=parts.join('');
+    mfb.classList.add('show');mft.innerHTML=parts.map(p=>p.replace(/<[^>]+>/g,'')).join(' · ');
+    mfb.classList.toggle('with-hdr',!!CU);
+    mfb.classList.toggle('with-sb',sbOpen&&window.innerWidth>768);
+  } else {
+    afbar.classList.remove('show');mfb.classList.remove('show');
+  }
+}
+
+function renderRekomendasi(){
+  const strip=document.getElementById('rekoStrip');
+  const list=document.getElementById('rekoList');
+  const recs=getFilteredRecs();
+  if(!recs.length){strip.classList.remove('show');return;}
+  const amap={};recs.forEach(r=>{if(r.kota)amap[r.kota]=(amap[r.kota]||0)+1;});
+  const sorted=Object.entries(amap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if(!sorted.length){strip.classList.remove('show');return;}
+  const maxA=sorted[0][1];
+  const medals=['🥇','🥈','🥉','4️⃣','5️⃣'];
+  list.innerHTML=sorted.map(([kota,cnt],i)=>{
+    const p=cnt/maxA;const lv=p>=0.75?'sgt':p>=0.4?'ramai':p>=0.15?'sedang':'sepi';const col=lvColor(lv);
+    return`<button class="reko-chip" onclick="flyToKota('${kota}')" style="background:${col};box-shadow:0 3px 10px ${col}55;">
+      ${medals[i]} ${kota} <span style="background:rgba(255,255,255,.25);border-radius:10px;padding:1px 5px;font-size:8px">${cnt}</span>
+    </button>`;
+  }).join('');
+  strip.classList.add('show');
+}
+
+/* ============================================================
+   GET RECS
+============================================================ */
+function getBaseRecs(){
+  return CU?(CU.role==='admin'?[...DB.rekaman]:DB.rekaman.filter(r=>r.userId===CU.id)):[...DB.rekaman];
+}
+function getFilteredRecs(){
+  let recs=getBaseRecs();
+  if(FS.hari!==null)recs=recs.filter(r=>{const h=r.hari!=null?r.hari:new Date(r.createdAt).getDay();return h===FS.hari;});
+  if(FS.jam!==null)recs=recs.filter(r=>r.jam===FS.jam);
+  else if(FS.jamPreset){const rng=JAM_PRESETS[FS.jamPreset];if(rng)recs=recs.filter(r=>r.jam>=rng[0]&&r.jam<rng[1]);}
+  return recs;
+}
+function buildGroups(recs){
+  const g={};
+  recs.forEach(r=>{if(!r.lat||!r.lng)return;if(!g[r.kota])g[r.kota]={recs:[],lat:r.lat,lng:r.lng};g[r.kota].recs.push(r);});
+  return g;
+}
+
+/* ============================================================
+   MARKERS
+============================================================ */
+function renderMarkersPublic(){
+  clearMarkers();
+  const groups=buildGroups(DB.rekaman);
+  const maxC=Math.max(...Object.values(groups).map(g=>g.recs.length),1);
+  Object.entries(groups).forEach(([k,g])=>drawBubble(k,g,maxC,false));
+}
+
+function renderMarkers(){
+  clearMarkers();
+  const recs=getFilteredRecs();
+  const groups=buildGroups(recs);
+  const counts=Object.values(groups).map(g=>g.recs.length);
+  const maxC=Math.max(...counts,1);
+  Object.entries(groups).forEach(([k,g])=>{
+    const lv=getLevel(g.recs.length,maxC);
+    if(FS.density!=='all'&&lv!==FS.density)return;
+    drawBubble(k,g,maxC,true);
+  });
+  if(FS.jam!==null||FS.jamPreset){
+    recs.forEach(r=>{
+      if(!r.lat||!r.lng)return;
+      const g=groups[r.kota];if(g&&g.recs.length>1)return;
+      drawSingleMarker(r);
+    });
+  }
+  DB.users.filter(u=>u.role==='driver'&&u.online&&u.lastLat).forEach(u=>drawDriverMarker(u));
+}
+
+function clearMarkers(){markers.forEach(m=>{try{map.removeLayer(m);}catch(e){}});markers=[];}
+
+function drawBubble(kota,g,maxC,interactive){
+  const cnt=g.recs.length;
+  const pct=cnt/maxC;
+  const lv=getLevel(cnt,maxC);
+  const col=lvColor(lv);
+  const lats=g.recs.filter(r=>r.lat).map(r=>r.lat);
+  const lngs=g.recs.filter(r=>r.lng).map(r=>r.lng);
+  if(!lats.length)return;
+  const avgLat=lats.reduce((a,b)=>a+b,0)/lats.length;
+  const avgLng=lngs.reduce((a,b)=>a+b,0)/lngs.length;
+  const sz=Math.round(36+pct*54);
+  const inner=Math.round(sz*.70);
+  const fs=inner>44?14:inner>34?11:9;
+
+  const iconHtml=`
+<div style="width:${sz}px;height:${sz}px;position:relative;display:flex;align-items:center;justify-content:center;">
+  <div style="position:absolute;inset:0;border-radius:50%;background:${col};opacity:.15;animation:bpulse ${1.8+Math.random()*.6}s ease-out infinite;pointer-events:none;"></div>
+  <div style="position:absolute;inset:${Math.round(sz*.1)}px;border-radius:50%;background:${col};opacity:.1;animation:bpulse ${2.3+Math.random()*.5}s ease-out infinite;animation-delay:.4s;pointer-events:none;"></div>
+  <div style="position:relative;z-index:2;width:${inner}px;height:${inner}px;border-radius:50%;background:${col};border:${inner>40?3:2}px solid rgba(255,255,255,.92);box-shadow:0 3px 14px ${col}99,0 0 0 2px ${col}33;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;">
+    <span style="font-size:${fs}px;font-weight:900;color:#fff;line-height:1;">${cnt}</span>
+    <span style="font-size:${Math.max(fs-3,7)}px;color:rgba(255,255,255,.85);font-weight:700;line-height:1;margin-top:1px;">${lvEmoji(lv)}</span>
+  </div>
+</div>`;
+
+  const icon=L.divIcon({html:iconHtml,className:'',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],popupAnchor:[0,-sz/2]});
+
+  let popup='';
+  if(interactive){
+    const stC={pickup:0,delivery:0,done:0,gagal:0};g.recs.forEach(r=>stC[r.status]=(stC[r.status]||0)+1);
+    const jamDist={};g.recs.forEach(r=>{jamDist[r.jam]=(jamDist[r.jam]||0)+1;});
+    const topJam=Object.entries(jamDist).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    const top=[...g.recs].sort((a,b)=>b.jam-a.jam).slice(0,3);
+    popup=`
+<div style="min-width:190px;max-width:250px;font-family:Segoe UI,sans-serif">
+  <div style="background:${col};color:#fff;padding:8px 10px;margin:-10px -10px 8px;border-radius:4px 4px 0 0">
+    <div style="font-weight:900;font-size:13px">📍 ${kota}</div>
+    <div style="font-size:10px;opacity:.9">${cnt} Order · <b>${lvLabel(lv)}</b></div>
+    ${FS.hari!==null?`<div style="font-size:9px;opacity:.8">📅 ${HARI_NAMES[FS.hari]}</div>`:''}
+  </div>
+  <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px">
+    ${stC.pickup?`<span style="background:#EE4D2D;color:#fff;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:800">📦${stC.pickup}</span>`:''}
+    ${stC.delivery?`<span style="background:#2980b9;color:#fff;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:800">🚚${stC.delivery}</span>`:''}
+    ${stC.done?`<span style="background:#27ae60;color:#fff;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:800">✅${stC.done}</span>`:''}
+    ${stC.gagal?`<span style="background:#e74c3c;color:#fff;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:800">❌${stC.gagal}</span>`:''}
+  </div>
+  <div style="font-size:8px;font-weight:800;color:#888;margin-bottom:3px;text-transform:uppercase">⏰ Jam Tersibuk</div>
+  <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px">
+    ${topJam.map(([j,c])=>`<span style="background:${col}22;color:${col};border:1px solid ${col}55;border-radius:5px;padding:2px 5px;font-size:9px;font-weight:800">${p2(j)}:00 (${c}x)</span>`).join('')}
+  </div>
+  ${top.map(r=>{const u=DB.users.find(x=>x.id===r.userId);return`<div style="padding:3px 0;border-top:1px solid #eee;font-size:10px"><b>${sIcon(r.status)} ${r.lokasi}</b><div style="color:#888;margin-top:1px">🕐 ${p2(r.jam)}:${p2(r.menit)} · 👤 ${u?u.nama:'?'}</div></div>`;}).join('')}
+  <div style="margin-top:6px;padding:5px 7px;background:${col}15;border-radius:6px;font-size:9px;color:${col};font-weight:700;border:1px solid ${col}33">
+    💡 ${lv==='sgt'||lv==='ramai'?'Area ini RAMAI — cocok untuk mangkal!':lv==='sedang'?'Cukup potensial untuk mangkal.':'Order sepi di area ini.'}
+  </div>
+</div>`;
+  } else {
+    popup=`<b>📍 ${kota}</b><br>${cnt} order · <b>${lvLabel(lv)}</b><br><small>Login untuk detail lengkap</small>`;
+  }
+
+  const m=L.marker([avgLat,avgLng],{icon}).addTo(map).bindPopup(popup,{maxWidth:270});
+  markers.push(m);
+}
+
+function drawSingleMarker(r){
+  const col=sColor(r.status);
+  const icon=L.divIcon({
+    html:`<div style="width:24px;height:24px;position:relative"><div style="position:absolute;inset:0;border-radius:50%;background:${col};opacity:.18;animation:bpulse 2s ease-out infinite"></div><div style="position:absolute;inset:4px;border-radius:50%;background:${col};border:2px solid rgba(255,255,255,.9);box-shadow:0 2px 8px ${col}88;display:flex;align-items:center;justify-content:center;font-size:9px">${sIcon(r.status)}</div></div>`,
+    className:'',iconSize:[24,24],iconAnchor:[12,12],popupAnchor:[0,-12]
+  });
+  const u=DB.users.find(x=>x.id===r.userId);
+  const m=L.marker([r.lat,r.lng],{icon}).addTo(map).bindPopup(`<b>${sIcon(r.status)} ${r.lokasi}</b><br><small>${r.kota} · ${p2(r.jam)}:${p2(r.menit)}</small><br><small>👤 ${u?u.nama:'?'}</small>`);
+  markers.push(m);
+}
+
+function drawDriverMarker(u){
+  const icon=L.divIcon({
+    html:`<div style="width:40px;height:40px;position:relative"><div style="position:absolute;inset:0;border-radius:10px;background:#8e44ad;opacity:.16;animation:bpulse 1.8s ease-out infinite"></div><div style="position:absolute;inset:3px;border-radius:8px;background:linear-gradient(135deg,#8e44ad,#9b59b6);box-shadow:0 3px 12px rgba(142,68,173,.5);display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid rgba(255,255,255,.9)">🛵</div><div style="position:absolute;bottom:0;right:0;background:#27ae60;width:11px;height:11px;border-radius:50%;border:2px solid #fff"></div></div>`,
+    className:'',iconSize:[40,40],iconAnchor:[20,20],popupAnchor:[0,-20]
+  });
+  const m=L.marker([u.lastLat,u.lastLng],{icon}).addTo(map).bindPopup(`<b>🟢 ${u.nama}</b><br>🛵 Online · ${u.area}<br>⏱️ ${fmtT(u.lastSeen)}`);
+  markers.push(m);
+}
+
+/* ============================================================
+   LEVEL HELPERS
+============================================================ */
+function getLevel(cnt,maxC){const p=cnt/maxC;if(p>=0.75)return'sgt';if(p>=0.40)return'ramai';if(p>=0.15)return'sedang';return'sepi';}
+function lvColor(l){return{sgt:'#6a0000',ramai:'#e74c3c',sedang:'#f39c12',sepi:'#27ae60'}[l]||'#888';}
+function lvLabel(l){return{sgt:'🔥 Sgt Ramai',ramai:'🔴 Ramai',sedang:'🟡 Sedang',sepi:'🟢 Sepi'}[l]||l;}
+function lvEmoji(l){return{sgt:'🔥',ramai:'🔴',sedang:'🟡',sepi:'🟢'}[l]||'📍';}
+function sColor(s){return{pickup:'#EE4D2D',delivery:'#2980b9',done:'#27ae60',gagal:'#e74c3c'}[s]||'#888';}
+function sIcon(s){return{pickup:'📦',delivery:'🚚',done:'✅',gagal:'❌'}[s]||'📍';}
+function p2(n){return String(n).padStart(2,'0');}
+function fmtT(iso){if(!iso)return'Offline';return new Date(iso).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});}
+
+/* ============================================================
+   LOGIN / LOGOUT
+============================================================ */
+function doLogin(){
+  const role=document.getElementById('lRole').value;
+  const uname=document.getElementById('lUser').value.trim();
+  const pass=document.getElementById('lPass').value;
+  if(!role||!uname||!pass){showErr('Semua field wajib!');return;}
+  const user=DB.users.find(u=>u.username===uname&&u.password===pass&&u.role===role);
+  if(!user){showErr('Username, password, atau role salah!');return;}
+  document.getElementById('lErr').style.display='none';
+  CU=user;user.online=true;user.lastSeen=new Date().toISOString();saveDB();
+  const ov=document.getElementById('loginOverlay');
+  ov.classList.add('hiding');setTimeout(()=>{ov.style.display='none';},400);
+  document.getElementById('hdr').classList.add('visible');
+  document.getElementById('mapCtrl').classList.add('with-hdr');
+  document.getElementById('mfbadge').classList.add('with-hdr');
+  document.getElementById('hName').textContent=user.nama;
+  document.getElementById('hRole').textContent=user.role==='admin'?'⚙️ Admin':'🛵 Driver';
+  document.querySelectorAll('.ao').forEach(el=>{el.style.display=user.role==='admin'?'block':'none';});
+  setTimeout(()=>{openSB();renderAll();toast(`Selamat datang, ${user.nama}! 🎉`,'s');},300);
+}
+function showErr(m){const e=document.getElementById('lErr');e.textContent=m;e.style.display='block';}
+function doLogout(){
+  if(CU){const u=DB.users.find(x=>x.id===CU.id);if(u)u.online=false;saveDB();CU=null;}
+  const ov=document.getElementById('loginOverlay');
+  ov.style.display='flex';ov.style.opacity='1';ov.classList.remove('hiding');
+  document.getElementById('hdr').classList.remove('visible');
+  document.getElementById('mapCtrl').classList.remove('with-hdr');
+  document.getElementById('mfbadge').classList.remove('with-hdr');
+  closeSB();FS={hari:null,jam:null,jamPreset:null,density:'all'};
+  renderMarkersPublic();
+  ['lRole','lUser','lPass'].forEach(id=>document.getElementById(id).value='');
+}
+
+/* ============================================================
+   SIDEBAR
+============================================================ */
+function openSB(){
+  sbOpen=true;document.getElementById('sidebar').classList.add('visible');
+  document.getElementById('heatBar').classList.add('with-sb');
+  setTimeout(()=>map.invalidateSize(),380);
+  if(window.innerWidth>768)document.getElementById('mfbadge').classList.add('with-sb');
+}
+function closeSB(){
+  sbOpen=false;document.getElementById('sidebar').classList.remove('visible');
+  document.getElementById('heatBar').classList.remove('with-sb');
+  setTimeout(()=>map.invalidateSize(),380);
+  document.getElementById('mfbadge').classList.remove('with-sb');
+}
+function toggleSB(){if(sbOpen)closeSB();else openSB();}
+
+/* ============================================================
+   RENDER ALL
+============================================================ */
+function renderAll(){
+  renderDashboard();renderHist();renderMarkers();
+  updateFilterBadge();updateSelCard();renderRekomendasi();
+  if(CU.role==='admin'){renderUsers();renderAdminHist();populateAFD();}
+}
+
+/* ============================================================
+   DASHBOARD
+============================================================ */
+function renderDashboard(){
+  const filt=getFilteredRecs();
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('stTotal').textContent=filt.length;
+  document.getElementById('stHari').textContent=filt.filter(r=>r.tgl===today).length;
+  document.getElementById('stOnline').textContent=DB.users.filter(u=>u.role==='driver'&&u.online).length;
+  document.getElementById('stDriver').textContent=DB.users.filter(u=>u.role==='driver').length;
+
+  const amap={};filt.forEach(r=>{amap[r.kota]=(amap[r.kota]||0)+1;});
+  const sorted=Object.entries(amap).sort((a,b)=>b[1]-a[1]);
+  const maxA=sorted[0]?sorted[0][1]:1;
+  const medals=['🥇','🥈','🥉'];
+  document.getElementById('areaRank').innerHTML=sorted.length===0
+    ?'<div class="empty"><i class="fas fa-map"></i><p>Pilih filter untuk melihat analisis area</p></div>'
+    :sorted.slice(0,8).map(([kota,cnt],i)=>{
+      const p=cnt/maxA;const lv=p>=0.75?'sgt':p>=0.4?'ramai':p>=0.15?'sedang':'sepi';const col=lvColor(lv);
+      return`<div class="ritem" onclick="flyToKota('${kota}')">
+        <div class="rrow"><span class="rname">${medals[i]||`${i+1}.`} ${kota}</span>
+          <span class="rinfo" style="color:${col}">${cnt} order · ${lvEmoji(lv)}</span></div>
+        <div class="rbar"><div class="rfill" style="width:${Math.round(p*100)}%;background:${col}"></div></div>
+      </div>`;}).join('');
+
+  const onl=DB.users.filter(u=>u.role==='driver'&&u.online);
+  document.getElementById('activeDrv').innerHTML=onl.length===0
+    ?'<div class="empty"><i class="fas fa-motorcycle"></i><p>Tidak ada driver online</p></div>'
+    :onl.map(u=>`<div class="uitem"><div class="uav">${u.nama.charAt(0)}</div>
+      <div style="flex:1"><div class="uname">${u.nama}</div><div class="uinfo">${u.area} · ${fmtT(u.lastSeen)}</div></div>
+      <div class="udot on"></div></div>`).join('');
+
+  const rec=[...filt].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
+  document.getElementById('recentRec').innerHTML=rec.length===0
+    ?'<div class="empty"><i class="fas fa-inbox"></i><p>Belum ada rekaman</p></div>'
+    :rec.map(r=>`<div class="hitem" onclick="flyTo(${r.lat},${r.lng},15)" style="cursor:pointer">
+      <div class="hbadge" style="background:${sColor(r.status)}">${sIcon(r.status)} ${r.status}</div>
+      <div class="hloc">${r.lokasi}</div>
+      <div class="htime">🕐 ${p2(r.jam)}:${p2(r.menit)} · ${HARI_NAMES[r.hari!=null?r.hari:new Date(r.createdAt).getDay()]} · ${r.tgl}</div>
+    </div>`).join('');
+}
+function flyToKota(k){const r=DB.rekaman.find(x=>x.kota===k&&x.lat&&x.lng);if(r)flyTo(r.lat,r.lng,14);}
+
+/* ============================================================
+   REKAM
+============================================================ */
+function saveRek(){
+  const lok=document.getElementById('rLokasi').value.trim();
+  const kota=document.getElementById('rKota').value;
+  const jam=parseInt(document.getElementById('rJam').value);
+  const menit=parseInt(document.getElementById('rMenit').value)||0;
+  const status=document.getElementById('rStatus').value;
+  const note=document.getElementById('rNote').value.trim();
+  const lat=parseFloat(document.getElementById('rLat').value);
+  const lng=parseFloat(document.getElementById('rLng').value);
+  if(!lok){toast('Nama lokasi wajib!','e');return;}
+  if(!kota){toast('Pilih area!','e');return;}
+  if(!jam||jam<1||jam>24){toast('Pilih jam 1-24!','e');return;}
+  const now=new Date();
+  const r={id:'r'+Date.now(),userId:CU.id,lokasi:lok,kota,jam,menit,status,note,
+    lat:isNaN(lat)?null:lat,lng:isNaN(lng)?null:lng,
+    tgl:now.toISOString().split('T')[0],hari:now.getDay(),createdAt:now.toISOString()};
+  if(!isNaN(lat)&&!isNaN(lng)){const u=DB.users.find(x=>x.id===CU.id);if(u){u.lastLat=lat;u.lastLng=lng;}}
+  DB.rekaman.push(r);saveDB();clearRekForm();renderAll();toast('Rekaman disimpan! 📍','s');goTab('hist');
+}
+function clearRekForm(){
+  ['rLokasi','rNote','rLat','rLng'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('rKota').value='';document.getElementById('rJam').value='';
+  document.getElementById('rMenit').value='0';document.getElementById('rStatus').value='pickup';
+}
+function getGPS(){
+  if(!navigator.geolocation){toast('GPS tidak tersedia!','e');return;}
+  toast('Mendapatkan GPS...','w');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    document.getElementById('rLat').value=pos.coords.latitude.toFixed(6);
+    document.getElementById('rLng').value=pos.coords.longitude.toFixed(6);
+    map.flyTo([pos.coords.latitude,pos.coords.longitude],15,{duration:1.2});
+    toast('Lokasi GPS didapat! 📍','s');
+  },()=>toast('Gagal mendapat GPS!','e'));
+}
+
+/* ============================================================
+   HISTORI
+============================================================ */
+function renderHist(){
+  const fSt=document.getElementById('fHSt').value;
+  const fTgl=document.getElementById('fHTgl').value;
+  let recs=DB.rekaman.filter(r=>r.userId===CU.id);
+  if(FS.hari!==null)recs=recs.filter(r=>{const h=r.hari!=null?r.hari:new Date(r.createdAt).getDay();return h===FS.hari;});
+  if(FS.jam!==null)recs=recs.filter(r=>r.jam===FS.jam);
+  else if(FS.jamPreset){const rng=JAM_PRESETS[FS.jamPreset];if(rng)recs=recs.filter(r=>r.jam>=rng[0]&&r.jam<rng[1]);}
+  if(fSt)recs=recs.filter(r=>r.status===fSt);
+  if(fTgl)recs=recs.filter(r=>r.tgl===fTgl);
+  recs.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const el=document.getElementById('histList');
+  if(!recs.length){el.innerHTML='<div class="empty"><i class="fas fa-map-marked-alt"></i><p>Belum ada histori pada filter ini</p></div>';return;}
+  el.innerHTML=recs.map(r=>`
+    <div class="hitem">
+      <div class="hbadge" style="background:${sColor(r.status)}">${sIcon(r.status)} ${r.status}</div>
+      <div class="hloc">${r.lokasi}</div>
+      <div class="hnote">${r.kota}${r.note?' · '+r.note:''}</div>
+      <div class="htime">🕐 ${p2(r.jam)}:${p2(r.menit)} · ${HARI_NAMES[r.hari!=null?r.hari:new Date(r.createdAt).getDay()]} · ${r.tgl}
+        ${r.lat?`<a href="#" onclick="flyTo(${r.lat},${r.lng},15);return false" style="color:var(--shop33);font-weight:700;text-decoration:none;margin-left:5px">📍Peta</a>`:''}
+      </div>
+      <div class="hacts">
+        <button class="btn bw bsm" onclick="editRek('${r.id}')"><i class="fas fa-edit"></i> Edit</button>
+        <button class="btn bd bsm" onclick="confirmDel('rekaman','${r.id}','${r.lokasi.replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i> Hapus</button>
+      </div>
+    </div>`).join('');
+}
+function editRek(id){
+  const r=DB.rekaman.find(x=>x.id===id);if(!r)return;
+  if(CU.role!=='admin'&&r.userId!==CU.id){toast('Tidak punya akses!','e');return;}
+  document.getElementById('eId').value=id;document.getElementById('eLok').value=r.lokasi;
+  document.getElementById('eJam').value=r.jam;document.getElementById('eMenit').value=r.menit;
+  document.getElementById('eSt').value=r.status;document.getElementById('eNote').value=r.note||'';
+  document.getElementById('eLat').value=r.lat||'';document.getElementById('eLng').value=r.lng||'';
+  openM('mEdit');
+}
+function updateRek(){
+  const id=document.getElementById('eId').value;const r=DB.rekaman.find(x=>x.id===id);if(!r)return;
+  r.lokasi=document.getElementById('eLok').value.trim();r.jam=parseInt(document.getElementById('eJam').value);
+  r.menit=parseInt(document.getElementById('eMenit').value);r.status=document.getElementById('eSt').value;
+  r.note=document.getElementById('eNote').value.trim();
+  const lat=parseFloat(document.getElementById('eLat').value);const lng=parseFloat(document.getElementById('eLng').value);
+  r.lat=isNaN(lat)?null:lat;r.lng=isNaN(lng)?null:lng;
+  saveDB();closeM('mEdit');renderAll();toast('Rekaman diupdate! ✅','s');
+}
+function confirmClear(){const cnt=DB.rekaman.filter(r=>r.userId===CU.id).length;confirmDel('allHistory',null,`Hapus semua ${cnt} rekaman saya?`);}
+
+/* ============================================================
+   ADMIN HISTORI
+============================================================ */
+function populateAFD(){
+  const sel=document.getElementById('aFD');if(!sel)return;
+  sel.innerHTML='<option value="">Semua Driver</option>';
+  DB.users.filter(u=>u.role==='driver').forEach(u=>sel.innerHTML+=`<option value="${u.id}">${u.nama}</option>`);
+}
+function renderAdminHist(){
+  const fD=document.getElementById('aFD').value;const fT=document.getElementById('aFT').value;
+  let recs=[...DB.rekaman];
+  if(FS.hari!==null)recs=recs.filter(r=>{const h=r.hari!=null?r.hari:new Date(r.createdAt).getDay();return h===FS.hari;});
+  if(FS.jam!==null)recs=recs.filter(r=>r.jam===FS.jam);
+  else if(FS.jamPreset){const rng=JAM_PRESETS[FS.jamPreset];if(rng)recs=recs.filter(r=>r.jam>=rng[0]&&r.jam<rng[1]);}
+  if(fD)recs=recs.filter(r=>r.userId===fD);
+  if(fT)recs=recs.filter(r=>r.tgl===fT);
+  recs.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const el=document.getElementById('adminHist');
+  if(!recs.length){el.innerHTML='<div class="empty"><i class="fas fa-inbox"></i><p>Tidak ada data</p></div>';return;}
+  el.innerHTML=recs.map(r=>{const u=DB.users.find(x=>x.id===r.userId);return`
+    <div class="hitem">
+      <div class="hbadge" style="background:${sColor(r.status)}">${sIcon(r.status)} ${r.status}</div>
+      <div class="hdrv">👤 ${u?u.nama:'Unknown'}</div>
+      <div class="hloc">${r.lokasi}</div>
+      <div class="hnote">${r.kota}${r.note?' · '+r.note:''}</div>
+      <div class="htime">🕐 ${p2(r.jam)}:${p2(r.menit)} · ${HARI_NAMES[r.hari!=null?r.hari:new Date(r.createdAt).getDay()]} · ${r.tgl}</div>
+      <div class="hacts">
+        <button class="btn bw bsm" onclick="editRek('${r.id}')"><i class="fas fa-edit"></i></button>
+        <button class="btn bd bsm" onclick="confirmDel('rekaman','${r.id}','${r.lokasi.replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i></button>
+        ${r.lat?`<button class="btn bi bsm" onclick="flyTo(${r.lat},${r.lng},15)"><i class="fas fa-map-marker-alt"></i></button>`:''}
+      </div>
+    </div>`;}).join('');
+}
+
+/* ============================================================
+   USERS
+============================================================ */
+function renderUsers(){
+  const q=document.getElementById('searchUser').value.toLowerCase();
+  document.getElementById('usersList').innerHTML=DB.users.filter(u=>u.nama.toLowerCase().includes(q)||u.username.toLowerCase().includes(q)).map(u=>`
+    <div class="uitem">
+      <div class="uav ${u.role==='admin'?'adm':''}">${u.nama.charAt(0)}</div>
+      <div style="flex:1;min-width:0"><div class="uname">${u.nama} <span class="badge ${u.role==='admin'?'badm':'bdrv'}">${u.role}</span></div>
+        <div class="uinfo">@${u.username} · ${u.area} · ${u.phone||'-'}</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <div class="udot ${u.online?'on':'off'}"></div>
+        <button class="btn bw bsm" onclick="showEditUser('${u.id}')"><i class="fas fa-edit"></i></button>
+        ${u.id!==CU.id?`<button class="btn bd bsm" onclick="confirmDel('user','${u.id}','${u.nama}')"><i class="fas fa-trash"></i></button>`:''}
+      </div>
+    </div>`).join('');
+}
+function showAddUser(){
+  document.getElementById('mUT').innerHTML='<i class="fas fa-user-plus"></i> Tambah User';
+  document.getElementById('eUID').value='';
+  ['uNama','uUser','uPass','uPhone'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('uRole').value='driver';document.getElementById('uArea').value='Pekalongan';
+  openM('mUser');
+}
+function showEditUser(id){
+  const u=DB.users.find(x=>x.id===id);if(!u)return;
+  document.getElementById('mUT').innerHTML='<i class="fas fa-user-edit"></i> Edit User';
+  document.getElementById('eUID').value=id;document.getElementById('uNama').value=u.nama;
+  document.getElementById('uUser').value=u.username;document.getElementById('uPass').value=u.password;
+  document.getElementById('uRole').value=u.role;document.getElementById('uPhone').value=u.phone||'';
+  document.getElementById('uArea').value=u.area||'Pekalongan';openM('mUser');
+}
+function saveUser(){
+  const id=document.getElementById('eUID').value;const nama=document.getElementById('uNama').value.trim();
+  const username=document.getElementById('uUser').value.trim();const pass=document.getElementById('uPass').value;
+  const role=document.getElementById('uRole').value;const phone=document.getElementById('uPhone').value.trim();
+  const area=document.getElementById('uArea').value;
+  if(!nama||!username||!pass){toast('Nama, username, password wajib!','e');return;}
+  if(id){
+    if(DB.users.find(x=>x.username===username&&x.id!==id)){toast('Username sudah ada!','e');return;}
+    const u=DB.users.find(x=>x.id===id);if(u)Object.assign(u,{nama,username,password:pass,role,phone,area});
+    toast('User diupdate! ✅','s');
+  } else {
+    if(DB.users.find(x=>x.username===username)){toast('Username sudah ada!','e');return;}
+    DB.users.push({id:'u'+Date.now(),nama,username,password:pass,role,phone,area,online:false,lastSeen:null,lastLat:null,lastLng:null});
+    toast('User ditambahkan! ✅','s');
+  }
+  saveDB();closeM('mUser');renderUsers();renderDashboard();populateAFD();
+}
+
+/* ============================================================
+   DELETE
+============================================================ */
+function confirmDel(type,id,label){
+  const msgs={rekaman:`Hapus rekaman "${label}"?`,user:`Hapus user "${label}" dan rekamannya?`,allHistory:label};
+  document.getElementById('confirmMsg').textContent=msgs[type]||'Yakin hapus?';
+  pendingDel={type,id};document.getElementById('confirmBtn').onclick=execDel;openM('mConfirm');
+}
+function execDel(){
+  if(!pendingDel)return;const{type,id}=pendingDel;
+  if(type==='rekaman'){const i=DB.rekaman.findIndex(r=>r.id===id);if(i!==-1)DB.rekaman.splice(i,1);toast('Dihapus!','s');}
+  else if(type==='user'){
+    if(id===CU.id){toast('Tidak bisa hapus akun sendiri!','e');closeM('mConfirm');return;}
+    DB.users=DB.users.filter(u=>u.id!==id);DB.rekaman=DB.rekaman.filter(r=>r.userId!==id);toast('User dihapus!','s');
+  }
+  else if(type==='allHistory'){DB.rekaman=DB.rekaman.filter(r=>r.userId!==CU.id);toast('Histori dihapus!','s');}
+  saveDB();closeM('mConfirm');pendingDel=null;renderAll();
+}
+
+/* ============================================================
+   EXPORT/IMPORT
+============================================================ */
+function exportData(mode){
+  const wb=XLSX.utils.book_new();
+  if(mode==='driver'){
+    let recs=DB.rekaman.filter(r=>r.userId===CU.id);
+    if(!recs.length){toast('Tidak ada data!','w');return;}
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(recs.map(r=>({'Hari':HARI_NAMES[r.hari!=null?r.hari:0],'Tanggal':r.tgl,'Jam':p2(r.jam),'Menit':p2(r.menit),'Waktu':`${p2(r.jam)}:${p2(r.menit)}`,'Lokasi':r.lokasi,'Area':r.kota,'Status':r.status,'Catatan':r.note,'Lat':r.lat,'Lng':r.lng}))),'Histori');
+    XLSX.writeFile(wb,`Histori_${CU.username}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  } else {
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(DB.rekaman.map(r=>{const u=DB.users.find(x=>x.id===r.userId);return{'Driver':u?.nama,'Username':u?.username,'Hari':HARI_NAMES[r.hari!=null?r.hari:0],'Tanggal':r.tgl,'Jam':p2(r.jam),'Menit':p2(r.menit),'Waktu':`${p2(r.jam)}:${p2(r.menit)}`,'Lokasi':r.lokasi,'Area':r.kota,'Status':r.status,'Catatan':r.note,'Lat':r.lat,'Lng':r.lng};})),'Rekaman');
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(DB.users.map(u=>({'Nama':u.nama,'Username':u.username,'Role':u.role,'Phone':u.phone,'Area':u.area}))),'Users');
+    XLSX.writeFile(wb,`shop33Tracker_${new Date().toISOString().split('T')[0]}.xlsx`);
+  }
+  toast('Export berhasil! 📊','s');
+}
+function importData(e){
+  if(CU.role!=='admin'){toast('Hanya admin!','e');return;}
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      let count=0;
+      rows.forEach(row=>{
+        if(row.Lokasi&&row.Tanggal){
+          const tgl=row.Tanggal||new Date().toISOString().split('T')[0];
+          const hi=row.Hari?HARI_NAMES.indexOf(row.Hari):new Date(tgl).getDay();
+          DB.rekaman.push({id:'r'+Date.now()+Math.random().toString(36).slice(2),userId:CU.id,
+            lokasi:row.Lokasi||'',kota:row.Area||row.Kota||'',
+            jam:parseInt(row.Jam)||1,menit:parseInt(row.Menit)||0,
+            status:row.Status||'pickup',note:row.Catatan||'',
+            lat:parseFloat(row.Lat)||null,lng:parseFloat(row.Lng)||null,
+            tgl,hari:hi>=0?hi:0,createdAt:new Date().toISOString()});
+          count++;
+        }
+      });
+      saveDB();renderAll();toast(`Import ${count} data berhasil!`,'s');
+    }catch(e){toast('Gagal import!','e');}
+  };
+  reader.readAsArrayBuffer(file);e.target.value='';
+}
+
+/* ============================================================
+   UI HELPERS
+============================================================ */
+function goTab(name){
+  document.querySelectorAll('.tcont').forEach(el=>el.classList.remove('on'));
+  document.querySelectorAll('.tbtn').forEach(el=>el.classList.remove('on'));
+  const tab=document.getElementById('tab-'+name);const btn=document.querySelector(`[data-t="${name}"]`);
+  if(tab)tab.classList.add('on');if(btn)btn.classList.add('on');
+  if(name==='hist')renderHist();if(name==='dash')renderDashboard();
+  if(name==='users'&&CU?.role==='admin'){renderUsers();renderAdminHist();}
+}
+function openM(id){document.getElementById(id).classList.remove('hidden');}
+function closeM(id){document.getElementById(id).classList.add('hidden');}
+function flyTo(lat,lng,z){if(!lat||!lng)return;map.flyTo([lat,lng],z||15,{duration:1.2});if(window.innerWidth<=768)closeSB();}
+function toast(msg,type){
+  const c=document.getElementById('toastwrap');const t=document.createElement('div');
+  t.className=`toast ${type||''}`;const ic={s:'✅',e:'❌',w:'⚠️',i:'ℹ️'};
+  t.innerHTML=`<span>${ic[type]||'💬'}</span> ${msg}`;c.appendChild(t);
+  setTimeout(()=>{t.style.animation='ti .25s ease reverse';setTimeout(()=>t.remove(),250);},3000);
+}
+function applyThemeStorage(){if(localStorage.getItem('shop33Theme')==='dark')applyDark();}
+function toggleTheme(){isDark?applyLight():applyDark();}
+function applyDark(){isDark=true;document.documentElement.setAttribute('data-theme','dark');document.querySelector('#themeBtn i').className='fas fa-sun';localStorage.setItem('shop33Theme','dark');}
+function applyLight(){isDark=false;document.documentElement.setAttribute('data-theme','light');document.querySelector('#themeBtn i').className='fas fa-moon';localStorage.setItem('shop33Theme','light');}
+
+document.addEventListener('click',e=>{if(e.target.classList.contains('moverlay'))e.target.classList.add('hidden');});
+document.getElementById('map').addEventListener('click',()=>{if(window.innerWidth<=768&&sbOpen)closeSB();});
+window.addEventListener('resize',()=>{map.invalidateSize();});
+setInterval(()=>{if(CU){renderMarkers();renderDashboard();}},30000);
 </script>
 </body>
 </html>

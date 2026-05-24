@@ -786,6 +786,41 @@ const DEF={
 
 let DB=JSON.parse(JSON.stringify(DEF));
 let CU=null;
+
+  // ============================================================
+// PERSISTENSI STATE (Tambahkan ini)
+// ============================================================
+
+// Simpan ke localStorage
+function saveState() {
+  localStorage.setItem('tracking_app_db', JSON.stringify(DB));
+  localStorage.setItem('tracking_app_cu', CU ? JSON.stringify(CU) : '');
+  localStorage.setItem('tracking_app_fs', JSON.stringify(FS));
+}
+
+// Load dari localStorage
+function loadState() {
+  const savedDB = localStorage.getItem('tracking_app_db');
+  const savedCU = localStorage.getItem('tracking_app_cu');
+  const savedFS = localStorage.getItem('tracking_app_fs');
+  
+  if (savedDB) DB = JSON.parse(savedDB);
+  if (savedCU && savedCU !== '') CU = JSON.parse(savedCU);
+  if (savedFS) FS = JSON.parse(savedFS);
+}
+
+// Reset ke data default (opsional)
+function resetToDefault() {
+  DB = JSON.parse(JSON.stringify(DEF));
+  CU = null;
+  FS = {hari:null, jam:null, jamPreset:null, density:'all'};
+  saveState();
+  location.reload();
+}
+
+// Override fungsi yang mengubah data untuk auto-save
+// Panggil saveState() setiap kali DB atau CU berubah
+  
 let map,layerStreet,layerSat,layerMode='street';
 let markers=[];
 let pendingDel=null;
